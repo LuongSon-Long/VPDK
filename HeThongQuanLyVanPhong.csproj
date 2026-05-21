@@ -26,10 +26,6 @@
     <PackageReference Include="Xceed.Words.NET" Version="5.2.26166.7850" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Views\Account\" />
-  </ItemGroup>
-
   <ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="https://www.schemastore.org/asconfig-schema.json" /></VisualStudio></ProjectExtensions>
 
 </Project>
