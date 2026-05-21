@@ -1,0 +1,892 @@
+﻿@* Views/DoDac/_PartialBanVe.cshtml *@
+@* Không cần @@model — toàn bộ dữ liệu lấy qua API *@
+
+<div class="row h-100" id="vungBanVe">
+
+    @* ── CỘT TRÁI: DANH SÁCH BẢN VẼ ─────────────────────────── *@
+    <div class="col-md-3 border-end" style="max-height:600px; overflow-y:auto;">
+        <button type="button" class="btn btn-success btn-sm w-100 mb-2 fw-bold"
+                id="bv2_BtnAddNew">
+            <i class="bi bi-plus-circle"></i> Nhập bản vẽ mới
+        </button>
+        <div class="list-group" id="bv2_ListBanVe">
+            <div class="text-center text-muted small py-3">Đang tải...</div>
+        </div>
+    </div>
+
+    @* ── CỘT PHẢI: FORM CHI TIẾT ─────────────────────────────── *@
+    <div class="col-md-9">
+        <div id="bv2_FormWrapper">
+
+            @* Thông báo quyền — ẩn/hiện theo canAction *@
+            <div id="bv2_NoPermission" class="alert alert-warning py-2 px-3 small mb-2 d-none">
+                <i class="bi bi-info-circle-fill"></i>
+                Không có quyền chỉnh sửa (hồ sơ đã kết thúc hoặc thuộc cán bộ khác).
+            </div>
+
+            <input type="hidden" id="bv2_ID" value="0" />
+            <input type="hidden" id="bv2_IDDangKyDoDac" value="0" />
+            <input type="hidden" id="bv2_IDTinh" value="" />
+
+            <div class="row g-2">
+                <div class="col-md-8">
+                    <label class="small fw-bold">Chủ sử dụng đất:</label>
+                    <input type="text" id="bv2_TenCSD"
+                           class="form-control form-control-sm text-uppercase fw-bold" />
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold">Số hiệu bản vẽ:</label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" id="bv2_SoHieuBanVe" class="form-control" />
+                        <button class="btn btn-outline-secondary" type="button"
+                                id="bv2_BtnLaySo" title="Lấy số tự động">
+                            <i class="bi bi-magic"></i>Lấy Số
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label class="small fw-bold">Địa chỉ thửa đất:</label>
+                    <input type="text" id="bv2_DiaChiThuaDat" class="form-control form-control-sm" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="small fw-bold">Tỉnh/Thành:</label>
+                    <select id="bv2_IDTinhSel" class="form-select form-select-sm">
+                        <option value="">-- Chọn tỉnh --</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="small fw-bold">Xã/Phường:</label>
+                    <select id="bv2_IDXa" class="form-select form-select-sm">
+                        <option value="">-- Chọn xã --</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="small fw-bold">Tờ bản đồ:</label>
+                    <input type="text" id="bv2_ToBD" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold">Số hiệu thửa:</label>
+                    <input type="text" id="bv2_SoHieuThua" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold">Diện tích (m²):</label>
+                    <input type="text" id="bv2_DienTich" class="form-control form-control-sm" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="small fw-bold">Loại bản vẽ:</label>
+                    <select id="bv2_LoaiBanVe" class="form-select form-select-sm">
+                        <option value="">-- Chọn --</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold">Năm đo đạc:</label>
+                    <input type="number" id="bv2_NamDoDac" class="form-control form-control-sm"
+                           value="" />
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold">Người đo / Kiểm tra:</label>
+                    <select id="bv2_IDNguoiDo" class="form-select form-select-sm">
+                        <option value="">-- Chọn cán bộ --</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="small fw-bold">Ngày lập (dd/MM/yyyy):</label>
+                    <input type="text" id="bv2_NgayLap" class="form-control form-control-sm"
+                           placeholder="dd/MM/yyyy" oninput="bv2_UpdateTrangThai()" />
+                </div>
+                <div class="col-md-6">
+                    <label class="small fw-bold">Trạng thái bản vẽ:</label>
+                    <input type="text" id="bv2_TrangThai"
+                           class="form-control form-control-sm bg-light fw-bold text-danger" readonly />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="small fw-bold">Số văn bản:</label>
+                    <input type="text" id="bv2_SoVB" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold">Ngày văn bản:</label>
+                    <input type="text" id="bv2_NgayVB" class="form-control form-control-sm"
+                           placeholder="dd/MM/yyyy" oninput="bv2_UpdateTrangThai()" />
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold">Ngày trình ký:</label>
+                    <input type="text" id="bv2_NgayTrinhKy" class="form-control form-control-sm"
+                           placeholder="dd/MM/yyyy" oninput="bv2_UpdateTrangThai()" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="small fw-bold">Lãnh đạo ký duyệt:</label>
+                    <select id="bv2_IDNguoiKy" class="form-select form-select-sm">
+                        <option value="">-- Chọn lãnh đạo --</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="small fw-bold">Ngày ký duyệt:</label>
+                    <input type="text" id="bv2_NgayKy" class="form-control form-control-sm"
+                           placeholder="dd/MM/yyyy" oninput="bv2_UpdateTrangThai()" />
+                </div>
+
+                <div class="col-12">
+                    <label class="small fw-bold">Ghi chú:</label>
+                    <textarea id="bv2_GhiChu" class="form-control form-control-sm" rows="2"></textarea>
+                </div>
+            </div>
+
+            @* ── FOOTER BUTTONS ───────────────────────────────────── *@
+            <div class="mt-3 d-flex justify-content-between border-top pt-2" id="bv2_BtnArea">
+                <button type="button" class="btn btn-danger btn-sm" id="bv2_BtnDelete">
+                    <i class="bi bi-trash"></i> Xóa bản vẽ
+                </button>
+                <div>
+                    <button type="button" class="btn btn-warning btn-sm me-2 text-dark d-none"
+                            id="bv2_BtnDonGia" onclick="bv2_MoModalDonGia()">
+                        <i class="bi bi-currency-dollar"></i> Đơn giá
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" id="bv2_BtnSave">
+                        <i class="bi bi-save"></i> Lưu dữ liệu
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@* ── MODAL ĐƠN GIÁ THANH TOÁN ────────────────────────────────── *@
+<div class="modal fade" id="bv2_ModalDonGia" tabindex="-1" style="z-index:1070;">
+    <div class="modal-dialog modal-lg shadow-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark py-2">
+                <h6 class="modal-title">
+                    <i class="bi bi-cash-coin"></i> Chi tiết đơn giá thanh toán
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="dg2_IDBanVe" />
+                <div class="row g-3">
+                    @* Cấp 1: Văn bản *@
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Văn bản quy định giá</label>
+                        <select class="form-select form-select-sm" id="dg2_VanBan">
+                            <option value="">-- Chọn văn bản --</option>
+                        </select>
+                    </div>
+                    @* Cấp 2: Loại bản vẽ *@
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Loại bản vẽ</label>
+                        <select class="form-select form-select-sm" id="dg2_LoaiBanVe" disabled>
+                            <option value="">-- Chờ chọn Văn bản --</option>
+                        </select>
+                    </div>
+                    @* Cấp 3: Khu vực *@
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Loại khu vực</label>
+                        <select class="form-select form-select-sm" id="dg2_LoaiKhuVuc" disabled>
+                            <option value="">-- Chờ chọn Loại bản vẽ --</option>
+                        </select>
+                    </div>
+                    @* Cấp 4: Định mức *@
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Định mức tính</label>
+                        <select class="form-select form-select-sm" id="dg2_DinhMucTinh" disabled>
+                            <option value="">-- Chờ chọn Khu vực --</option>
+                        </select>
+                    </div>
+
+                    <hr class="my-1" />
+
+                    @* Số tiền *@
+                    <div class="col-md-4">
+                        <label class="form-label small">Số tiền (VNĐ)</label>
+                        <input type="text" id="dg2_SoTien"
+                               class="form-control form-control-sm bg-light text-end fw-bold" readonly />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Chi phí lao động (VNĐ)</label>
+                        <input type="text" id="dg2_ChiPhiLaoDong"
+                               class="form-control form-control-sm bg-light text-end fw-bold" readonly />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-danger fw-bold">Tiền làm tròn (VNĐ)</label>
+                        <input type="text" id="dg2_TienLamTron"
+                               class="form-control form-control-sm bg-warning text-dark text-end fw-bold" readonly />
+                    </div>
+
+                    @* Hóa đơn *@
+                    <div class="row g-2 mt-1 p-2 border rounded bg-light mx-0">
+                        <div class="col-12">
+                            <h6 class="small fw-bold text-primary border-bottom pb-1 mb-2">
+                                Thông tin hóa đơn
+                            </h6>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Ký hiệu hóa đơn</label>
+                            <input type="text" id="dg2_KyHieuHoaDon"
+                                   class="form-control form-control-sm" placeholder="VD: 1C23TBB" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Số hóa đơn</label>
+                            <input type="text" id="dg2_SoHoaDon"
+                                   class="form-control form-control-sm" placeholder="00000001" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Ngày hóa đơn</label>
+                            <input type="text" id="dg2_NgayHoaDon"
+                                   class="form-control form-control-sm" placeholder="dd/MM/yyyy" />
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-2">
+                        <div class="form-check form-switch fs-5">
+                            <input class="form-check-input" type="checkbox" id="dg2_DaThanhToan" />
+                            <label class="form-check-label fs-6 mt-1 ms-2" for="dg2_DaThanhToan">
+                                Đã thanh toán cho bản vẽ này
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm"
+                        data-bs-dismiss="modal">
+                    Đóng
+                </button>
+                <button type="button" id="dg2_BtnLuu" class="btn btn-primary btn-sm"
+                        onclick="bv2_LuuThanhToan()">
+                    <i class="bi bi-save"></i> Lưu thanh toán
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ================================================================
+    // STATE nội bộ của Partial BanVe
+    // ================================================================
+    var bv2_CanAction    = false;   // quyền sửa/xóa
+    var bv2_IDHoSo       = 0;       // id hồ sơ hiện tại
+    var bv2_IDDonVi      = 0;       // để load dropdown cán bộ
+    var bv2_PaidIds      = [];      // danh sách idBanVe đã thanh toán
+
+    // ================================================================
+    // ENTRY POINT — Index.cshtml gọi sau khi inject HTML
+    // fxbv_Init(idHoSo) — đặt tên fxbv_ để Index gọi đúng
+    // ================================================================
+    async function fxbv_Init(idHoSo) {
+        bv2_IDHoSo = idHoSo;
+
+        // 1. Lấy thông tin hồ sơ để xác định canAction + idDonVi + idTinh
+        try {
+            // Lấy từ allHoSoData đã có sẵn trong Index (không cần gọi thêm API)
+            const hs = (allHoSoData || []).find(h => h.id === idHoSo);
+            if (hs) {
+                bv2_CanAction = (hs.idTaiKhoan === SESSION_USER_ID) &&
+                                (hs.trangThaiDo !== 'KetThuc');
+                bv2_IDDonVi   = hs.idDonViCongTac || 0;
+                $('#bv2_IDTinh').val(hs.idTinh || '');
+            }
+        } catch(e) {
+            console.warn('fxbv_Init: không lấy được thông tin hồ sơ', e);
+        }
+
+        // 2. Áp quyền lên UI
+        bv2_ApDungQuyen();
+
+        // 3. Load dropdowns song song
+        await Promise.all([
+            bv2_LoadTinhDropdown(),
+            bv2_LoadLoaiBanVe(),
+            bv2_LoadCanBo()
+        ]);
+
+        // 4. Load danh sách bản vẽ
+        await bv2_LoadDanhSach();
+
+        // 5. Bind events
+        bv2_BindEvents();
+    }
+
+    // ================================================================
+    // ÁP DỤNG QUYỀN LÊN UI
+    // ================================================================
+    function bv2_ApDungQuyen() {
+        if (bv2_CanAction) {
+            $('#bv2_NoPermission').addClass('d-none');
+            $('#bv2_BtnArea').removeClass('d-none');
+            $('#bv2_BtnAddNew').prop('disabled', false);
+            // Bật input
+            $('#bv2_FormWrapper input, #bv2_FormWrapper select, #bv2_FormWrapper textarea')
+                .prop('disabled', false);
+        } else {
+            $('#bv2_NoPermission').removeClass('d-none');
+            $('#bv2_BtnArea').addClass('d-none');
+            $('#bv2_BtnAddNew').prop('disabled', true);
+            // Khóa input
+            $('#bv2_FormWrapper input, #bv2_FormWrapper select, #bv2_FormWrapper textarea')
+                .prop('disabled', true);
+        }
+    }
+
+    // ================================================================
+    // LOAD DANH SÁCH BẢN VẼ → GET /api/dodac/banve/by-hoso/{id}
+    // ================================================================
+    async function bv2_LoadDanhSach() {
+        try {
+            const [dsBanVe, dsThanhToan] = await Promise.all([
+                apiGet(`/api/dodac/banve/by-hoso/${bv2_IDHoSo}`),
+                // Lấy danh sách id đã thanh toán bằng cách check từng cái
+                // Dùng BanVeDto: không có field isPaid → cần lấy riêng
+                Promise.resolve([])
+            ]);
+
+            // Load trạng thái thanh toán cho từng bản vẽ
+            bv2_PaidIds = [];
+            if (dsBanVe && dsBanVe.length > 0) {
+                const ttResults = await Promise.all(
+                    dsBanVe.map(bv =>
+                        apiGet(`/api/dodac/dongiathanhtoan/thanhtoan/${bv.id}`)
+                            .then(r => (r && r.daThanhToan) ? bv.id : null)
+                            .catch(() => null)
+                    )
+                );
+                bv2_PaidIds = ttResults.filter(x => x !== null);
+            }
+
+            bv2_RenderDanhSach(dsBanVe || []);
+        } catch(e) {
+            $('#bv2_ListBanVe').html(
+                `<div class="text-danger small p-2">Lỗi tải bản vẽ: ${e.message}</div>`);
+        }
+    }
+
+    // ================================================================
+    // RENDER DANH SÁCH BẢN VẼ BÊN TRÁI
+    // ================================================================
+    function bv2_RenderDanhSach(list) {
+        if (list.length === 0) {
+            $('#bv2_ListBanVe').html(
+                '<div class="text-center text-muted small py-3">Chưa có bản vẽ</div>');
+            return;
+        }
+        const html = list.map(bv => {
+            const isPaid = bv2_PaidIds.includes(bv.id);
+            const badgePaid = isPaid
+                ? `<span class="badge bg-success" title="Đã thanh toán">
+                       <i class="bi bi-currency-dollar"></i> đã thu
+                   </span>`
+                : '';
+            return `
+            <a href="javascript:void(0)"
+               class="list-group-item list-group-item-action bv2-item"
+               data-id="${bv.id}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="fw-bold text-primary small">
+                        Tờ: ${bv.toBD || '?'} - Thửa: ${bv.soHieuThua || '?'}
+                    </div>
+                    ${badgePaid}
+                </div>
+                <div class="d-flex justify-content-between mt-1">
+                    <small class="text-muted">DT: ${bv.dienTich || '?'}</small>
+                    <small class="text-muted">${bv.trangThai || ''}</small>
+                </div>
+            </a>`;
+        }).join('');
+        $('#bv2_ListBanVe').html(html);
+    }
+
+    // ================================================================
+    // LOAD DROPDOWN TỈNH → GET /api/dodac/dropdown/all-tinh
+    // ================================================================
+    async function bv2_LoadTinhDropdown() {
+        try {
+            const data = await apiGet('/api/dodac/dropdown/all-tinh');
+            let opts = '<option value="">-- Chọn tỉnh --</option>';
+            (data || []).forEach(t => {
+                opts += `<option value="${t.id}">${t.ten}</option>`;
+            });
+            $('#bv2_IDTinhSel').html(opts);
+            // Set tỉnh của hồ sơ nếu có
+            const idTinhHoSo = $('#bv2_IDTinh').val();
+            if (idTinhHoSo) {
+                $('#bv2_IDTinhSel').val(idTinhHoSo);
+                await bv2_LoadXaTheoTinh(idTinhHoSo);
+            }
+        } catch(e) { console.error('bv2_LoadTinhDropdown:', e); }
+    }
+
+    // ================================================================
+    // LOAD XÃ THEO TỈNH → GET /api/dodac/dropdown/xa-by-tinh/{id}
+    // selectedIdXa: tự động chọn sau khi load
+    // ================================================================
+    async function bv2_LoadXaTheoTinh(idTinh, selectedIdXa = null) {
+        $('#bv2_IDXa').html('<option value="">Đang tải...</option>');
+        try {
+            // XaByTinhDto: { id, maXa, tenXa }
+            const data = await apiGet(`/api/dodac/dropdown/xa-by-tinh/${idTinh}`);
+            let opts = '<option value="">-- Chọn xã --</option>';
+            (data || []).forEach(x => {
+                const sel = selectedIdXa && x.id == selectedIdXa ? 'selected' : '';
+                opts += `<option value="${x.id}" data-maxa="${x.maXa || ''}" ${sel}>${x.tenXa}</option>`;
+            });
+            $('#bv2_IDXa').html(opts);
+        } catch(e) {
+            $('#bv2_IDXa').html('<option value="">-- Lỗi tải --</option>');
+        }
+    }
+
+    // ================================================================
+    // LOAD LOẠI BẢN VẼ → GET /api/dodac/dropdown/all-loai-banve
+    // ================================================================
+    async function bv2_LoadLoaiBanVe() {
+        try {
+            const data = await apiGet('/api/dodac/dropdown/all-loai-banve');
+            let opts = '<option value="">-- Chọn --</option>';
+            (data || []).forEach(l => {
+                opts += `<option value="${l.ten}">${l.ten}</option>`;
+            });
+            $('#bv2_LoaiBanVe').html(opts);
+        } catch(e) { console.error('bv2_LoadLoaiBanVe:', e); }
+    }
+
+    // ================================================================
+    // LOAD CÁN BỘ → GET /api/dodac/dropdown/taikhoan-by-donvi/{idDonVi}
+    // ================================================================
+    async function bv2_LoadCanBo() {
+        if (!bv2_IDDonVi) return;
+        try {
+            const data = await apiGet(`/api/dodac/dropdown/taikhoan-by-donvi/${bv2_IDDonVi}`);
+            let opts = '<option value="">-- Chọn cán bộ --</option>';
+            (data || []).forEach(cb => {
+                // DropdownDto: { id, ten }
+                opts += `<option value="${cb.id}">${cb.ten}</option>`;
+            });
+            $('#bv2_IDNguoiDo, #bv2_IDNguoiKy').html(opts);
+        } catch(e) { console.error('bv2_LoadCanBo:', e); }
+    }
+
+    // ================================================================
+    // BIND EVENTS
+    // ================================================================
+    function bv2_BindEvents() {
+        // Click item danh sách
+        $('#bv2_ListBanVe').off('click', '.bv2-item')
+            .on('click', '.bv2-item', async function () {
+                $('.bv2-item').removeClass('active');
+                $(this).addClass('active');
+                const id = $(this).data('id');
+                await bv2_LoadChiTiet(id);
+                if (bv2_CanAction) $('#bv2_BtnDonGia').removeClass('d-none');
+            });
+
+        // Nút Thêm mới
+        $('#bv2_BtnAddNew').off('click').on('click', () => bv2_ResetForm());
+
+        // Nút Lưu
+        $('#bv2_BtnSave').off('click').on('click', () => bv2_Save());
+
+        // Nút Xóa
+        $('#bv2_BtnDelete').off('click').on('click', () => bv2_Delete());
+
+        // Nút Lấy số tự động → dùng lại modalSoManh của Index
+        $('#bv2_BtnLaySo').off('click').on('click', () => {
+            const $selXa = $('#bv2_IDXa');
+            const idXa   = $selXa.val();
+            const tenXa  = $selXa.find('option:selected').text();
+            const maXa   = $selXa.find('option:selected').data('maxa');
+            if (!idXa) {
+                alert('Vui lòng chọn Xã/Phường trước!');
+                return;
+            }
+            if (!maXa) {
+                alert('Xã này chưa có Mã xã trong hệ thống. Vui lòng liên hệ quản trị viên!');
+                return;
+            }
+            $('#sh_TenXa_Display').val(tenXa);
+            $('#sh_MaXa_Hidden').val(maXa);
+            $('#sh_Nam').val($('#bv2_NamDoDac').val() || new Date().getFullYear());
+            $('#resultArea').addClass('d-none');
+            window._bv2_SoHieuTarget = '#bv2_SoHieuBanVe';
+            new bootstrap.Modal(document.getElementById('modalSoManh')).show();
+        });
+
+        // Thay đổi tỉnh → load xã
+        $('#bv2_IDTinhSel').off('change').on('change', function () {
+            bv2_LoadXaTheoTinh($(this).val());
+        });
+
+        // Cascade đơn giá
+        $('#dg2_VanBan').off('change').on('change', async function () {
+            const vb = $(this).val();
+            $('#dg2_LoaiBanVe, #dg2_LoaiKhuVuc, #dg2_DinhMucTinh')
+                .html('<option value="">--</option>').prop('disabled', true);
+            bv2_ClearTien();
+            if (!vb) return;
+            try {
+                // API trả về List<string>
+                const data = await apiGet(`/api/dodac/dongiathanhtoan/loaibanve?vanBan=${encodeURIComponent(vb)}`);
+                let opts = '<option value="">-- Chọn loại --</option>';
+                (data || []).forEach(x => { opts += `<option value="${x}">${x}</option>`; });
+                $('#dg2_LoaiBanVe').html(opts).prop('disabled', false);
+            } catch(e) { console.error(e); }
+        });
+
+        $('#dg2_LoaiBanVe').off('change').on('change', async function () {
+            const vb  = $('#dg2_VanBan').val();
+            const lbv = $(this).val();
+            $('#dg2_LoaiKhuVuc, #dg2_DinhMucTinh')
+                .html('<option value="">--</option>').prop('disabled', true);
+            bv2_ClearTien();
+            if (!vb || !lbv) return;
+            try {
+                // API trả về List<string>
+                const data = await apiGet(
+                    `/api/dodac/dongiathanhtoan/khu-vuc?vanBan=${encodeURIComponent(vb)}&loaiBanVe=${encodeURIComponent(lbv)}`
+                );
+                let opts = '<option value="">-- Chọn khu vực --</option>';
+                (data || []).forEach(x => { opts += `<option value="${x}">${x}</option>`; });
+                $('#dg2_LoaiKhuVuc').html(opts).prop('disabled', false);
+            } catch(e) { console.error(e); }
+        });
+
+        $('#dg2_LoaiKhuVuc').off('change').on('change', async function () {
+            const vb  = $('#dg2_VanBan').val();
+            const lbv = $('#dg2_LoaiBanVe').val();
+            const lkv = $(this).val();
+            $('#dg2_DinhMucTinh').html('<option value="">--</option>').prop('disabled', true);
+            bv2_ClearTien();
+            if (!vb || !lbv || !lkv) return;
+            try {
+                // ChiTietDonGiaDto[]: { id, dinhMucTinh, soTien, chiPhiLaoDong, tienLamTron }
+                const data = await apiGet(
+                    `/api/dodac/dongiathanhtoan/chitiet?vanBan=${encodeURIComponent(vb)}&loaiBanVe=${encodeURIComponent(lbv)}&loaiKhuVuc=${encodeURIComponent(lkv)}`
+                );
+                let opts = '<option value="">-- Chọn định mức --</option>';
+                (data || []).forEach(x => {
+                    opts += `<option value="${x.id}"
+                        data-sotien="${x.soTien}"
+                        data-chiphi="${x.chiPhiLaoDong}"
+                        data-lamtron="${x.tienLamTron}">
+                        ${x.dinhMucTinh}
+                    </option>`;
+                });
+                $('#dg2_DinhMucTinh').html(opts).prop('disabled', false);
+            } catch(e) { console.error(e); }
+        });
+
+        $('#dg2_DinhMucTinh').off('change').on('change', function () {
+            const sel = $(this).find('option:selected');
+            if (!sel.val()) { bv2_ClearTien(); return; }
+            const fmt = n => Number(n).toLocaleString('vi-VN');
+            $('#dg2_SoTien').val(fmt(sel.data('sotien')));
+            $('#dg2_ChiPhiLaoDong').val(fmt(sel.data('chiphi')));
+            $('#dg2_TienLamTron').val(fmt(sel.data('lamtron')));
+        });
+    }
+
+    // ================================================================
+    // LOAD CHI TIẾT BẢN VẼ → GET /api/dodac/banve/{id}
+    // ================================================================
+    async function bv2_LoadChiTiet(id) {
+        try {
+            // BanVeDto: { id, tenCSD, diaChiThuaDat, idXa, idTinh, toBD, soHieuThua,
+            //             dienTich, loaiBanVe, namDoDac, soHieuBanVe, idNguoiDo,
+            //             soVB, ngayLap, ngayVB, ngayTrinhKy, idNguoiKy, ngayKy,
+            //             trangThai, ghiChu }
+            const d = await apiGet(`/api/dodac/banve/${id}`);
+            if (!d) return;
+
+            $('#bv2_ID').val(d.id);
+            $('#bv2_IDDangKyDoDac').val(d.iDDangKyDoDac || bv2_IDHoSo);
+            $('#bv2_TenCSD').val(d.tenCSD || '');
+            $('#bv2_DiaChiThuaDat').val(d.diaChiThuaDat || '');
+            $('#bv2_ToBD').val(d.toBD || '');
+            $('#bv2_SoHieuThua').val(d.soHieuThua || '');
+            $('#bv2_DienTich').val(d.dienTich || '');
+            $('#bv2_LoaiBanVe').val(d.loaiBanVe || '');
+            $('#bv2_NamDoDac').val(d.namDoDac || new Date().getFullYear());
+            $('#bv2_SoHieuBanVe').val(d.soHieuBanVe || '');
+            $('#bv2_SoVB').val(d.soVB || '');
+            $('#bv2_GhiChu').val(d.ghiChu || '');
+            $('#bv2_TrangThai').val(d.trangThai || '');
+            $('#bv2_IDNguoiDo').val(d.iDNguoiDo || '');
+            $('#bv2_IDNguoiKy').val(d.iDNguoiKy || '');
+
+            // Ngày: BanVeDto trả DateTime? → formatDisplayDate từ Index.cshtml
+            $('#bv2_NgayLap').val(d.ngayLap     ? formatDisplayDate(d.ngayLap)     : '');
+            $('#bv2_NgayVB').val(d.ngayVB       ? formatDisplayDate(d.ngayVB)      : '');
+            $('#bv2_NgayTrinhKy').val(d.ngayTrinhKy ? formatDisplayDate(d.ngayTrinhKy) : '');
+            $('#bv2_NgayKy').val(d.ngayKy       ? formatDisplayDate(d.ngayKy)      : '');
+
+            // Load xã theo tỉnh rồi set giá trị
+            if (d.iDTinh) {
+                $('#bv2_IDTinhSel').val(d.iDTinh);
+                await bv2_LoadXaTheoTinh(d.iDTinh, d.iDXa);
+            }
+        } catch(e) {
+            alert('Lỗi tải chi tiết bản vẽ: ' + e.message);
+        }
+    }
+
+    // ================================================================
+    // RESET FORM (Thêm mới)
+    // ================================================================
+    function bv2_ResetForm() {
+        $('#bv2_ID').val(0);
+        $('#bv2_IDDangKyDoDac').val(bv2_IDHoSo);
+        $('#bv2_TenCSD, #bv2_DiaChiThuaDat, #bv2_ToBD, #bv2_SoHieuThua').val('');
+        $('#bv2_DienTich, #bv2_SoVB, #bv2_GhiChu').val('');
+        $('#bv2_NgayLap, #bv2_NgayVB, #bv2_NgayTrinhKy, #bv2_NgayKy').val('');
+        $('#bv2_SoHieuBanVe').val('');
+        $('#bv2_NamDoDac').val(new Date().getFullYear());
+        $('#bv2_LoaiBanVe, #bv2_IDNguoiDo, #bv2_IDNguoiKy').val('');
+        $('#bv2_TrangThai').val('Chưa lập bản vẽ');
+        $('#bv2_BtnDonGia').addClass('d-none');
+        $('.bv2-item').removeClass('active');
+
+        // Set tỉnh/xã từ hồ sơ gốc
+        const hs = (allHoSoData || []).find(h => h.id === bv2_IDHoSo);
+        if (hs && hs.idTinh) {
+            $('#bv2_IDTinhSel').val(hs.idTinh);
+            bv2_LoadXaTheoTinh(hs.idTinh, hs.idXa);
+        }
+        $('#bv2_TenCSD').focus();
+    }
+
+    // ================================================================
+    // TRẠNG THÁI TỰ ĐỘNG THEO NGÀY
+    // ================================================================
+    function bv2_UpdateTrangThai() {
+        let tt = 'Chưa lập bản vẽ';
+        if ($('#bv2_NgayLap').val())     tt = 'Đã lập và đợi kiểm tra bản vẽ';
+        if ($('#bv2_NgayVB').val())      tt = 'Đang xin ý kiến cơ quan liên quan';
+        if ($('#bv2_NgayTrinhKy').val()) tt = 'Đang trình ký';
+        if ($('#bv2_NgayKy').val())      tt = 'Đã duyệt bản vẽ';
+        $('#bv2_TrangThai').val(tt);
+    }
+
+    // ================================================================
+    // LƯU BẢN VẼ → POST /api/dodac/banve
+    // SaveBanVeDto: { id, iDDangKyDoDac, tenCSD, diaChiThuaDat, iDTinh, iDXa,
+    //                toBD, soHieuThua, dienTich, loaiBanVe, namDoDac,
+    //                soHieuBanVe, iDNguoiDo, soVB, ngayLapStr, ngayVBStr,
+    //                ngayTrinhKyStr, iDNguoiKy, ngayKyStr, ghiChu }
+    // ================================================================
+    async function bv2_Save() {
+        const model = {
+            id:             parseInt($('#bv2_ID').val()) || 0,
+            iDDangKyDoDac:  bv2_IDHoSo,
+            tenCSD:         $('#bv2_TenCSD').val(),
+            diaChiThuaDat:  $('#bv2_DiaChiThuaDat').val(),
+            iDTinh:         parseInt($('#bv2_IDTinhSel').val()) || null,
+            iDXa:           parseInt($('#bv2_IDXa').val())      || null,
+            toBD:           $('#bv2_ToBD').val(),
+            soHieuThua:     $('#bv2_SoHieuThua').val(),
+            dienTich:       $('#bv2_DienTich').val(),
+            loaiBanVe:      $('#bv2_LoaiBanVe').val(),
+            namDoDac:       parseInt($('#bv2_NamDoDac').val())       || null,
+            soHieuBanVe:    parseInt($('#bv2_SoHieuBanVe').val())    || null,
+            iDNguoiDo:      parseInt($('#bv2_IDNguoiDo').val())      || null,
+            soVB:           $('#bv2_SoVB').val(),
+            ngayLapStr:     $('#bv2_NgayLap').val(),
+            ngayVBStr:      $('#bv2_NgayVB').val(),
+            ngayTrinhKyStr: $('#bv2_NgayTrinhKy').val(),
+            iDNguoiKy:      parseInt($('#bv2_IDNguoiKy').val())      || null,
+            ngayKyStr:      $('#bv2_NgayKy').val(),
+            ghiChu:         $('#bv2_GhiChu').val()
+        };
+
+        try {
+            const res = await apiPost('/api/dodac/banve', model);
+            if (res && res.success) {
+                // Gán lại ID nếu vừa tạo mới
+                if (model.id === 0 && res.id) {
+                    $('#bv2_ID').val(res.id);
+                    $('#bv2_BtnDonGia').removeClass('d-none');
+                }
+                alert('Lưu bản vẽ thành công!');
+                await bv2_LoadDanhSach();
+            } else {
+                alert('Lỗi: ' + (res?.message || 'Không xác định'));
+            }
+        } catch(e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    }
+
+    // ================================================================
+    // XÓA BẢN VẼ → DELETE /api/dodac/banve/{id}
+    // ================================================================
+    async function bv2_Delete() {
+        const id = parseInt($('#bv2_ID').val()) || 0;
+        if (id === 0) {
+            alert('Vui lòng chọn một bản vẽ trong danh sách để xóa!');
+            return;
+        }
+        if (!confirm('Bạn có chắc muốn xóa bản vẽ này không?')) return;
+        try {
+            const res = await apiDelete(`/api/dodac/banve/${id}`);
+            if (res && res.success) {
+                alert('Đã xóa bản vẽ thành công!');
+                bv2_ResetForm();
+                await bv2_LoadDanhSach();
+            } else {
+                alert('Không xóa được: ' + (res?.message || ''));
+            }
+        } catch(e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    }
+
+    // ================================================================
+    // MỞ MODAL ĐƠN GIÁ
+    // ================================================================
+    async function bv2_MoModalDonGia() {
+        const idBanVe = parseInt($('#bv2_ID').val()) || 0;
+        if (idBanVe === 0) {
+            alert('Hãy lưu bản vẽ trước khi thiết lập đơn giá!');
+            return;
+        }
+
+        // Reset form
+        $('#dg2_IDBanVe').val(idBanVe);
+        $('#dg2_LoaiBanVe, #dg2_LoaiKhuVuc, #dg2_DinhMucTinh')
+            .html('<option value="">--</option>').prop('disabled', true);
+        $('#dg2_KyHieuHoaDon, #dg2_SoHoaDon, #dg2_NgayHoaDon').val('');
+        $('#dg2_DaThanhToan').prop('checked', false);
+        $('#dg2_BtnLuu').prop('disabled', false).html('<i class="bi bi-save"></i> Lưu thanh toán');
+        bv2_ClearTien();
+
+        // Load văn bản (cấp 1)
+        // API trả về List<string> trực tiếp, không phải object
+        try {
+            const dsVB = await apiGet('/api/dodac/dongiathanhtoan/vanban');
+            let opts = '<option value="">-- Chọn văn bản --</option>';
+            (dsVB || []).forEach(x => { opts += `<option value="${x}">${x}</option>`; });
+            $('#dg2_VanBan').html(opts);
+        } catch(e) { console.error(e); }
+
+        // Load dữ liệu cũ nếu có
+        try {
+            // ThanhToanResponseDto: { idDonGia, kyHieu, soHD, ngayHD, daThanhToan,
+            //                         vanBan, loaiBanVe, loaiKhuVuc }
+            const tt = await apiGet(`/api/dodac/dongiathanhtoan/thanhtoan/${idBanVe}`);
+            if (tt) {
+                $('#dg2_KyHieuHoaDon').val(tt.kyHieu  || '');
+                $('#dg2_SoHoaDon').val(tt.soHD         || '');
+                $('#dg2_NgayHoaDon').val(tt.ngayHD     || '');
+                $('#dg2_DaThanhToan').prop('checked', tt.daThanhToan);
+
+                if (tt.daThanhToan) {
+                    $('#dg2_BtnLuu').prop('disabled', true)
+                        .html('Đã thanh toán (Khóa)');
+                }
+
+                // Cascade fill: vanBan → loaiBanVe → loaiKhuVuc → idDonGia
+                if (tt.vanBan) {
+                    await bv2_CascadeFill(tt.vanBan, tt.loaiBanVe, tt.loaiKhuVuc, tt.idDonGia);
+                }
+            }
+        } catch(e) {
+            // Chưa có thanh toán — bình thường
+        }
+
+        new bootstrap.Modal(document.getElementById('bv2_ModalDonGia')).show();
+    }
+
+    // ================================================================
+    // FILL CASCADE COMBOBOX ĐƠN GIÁ (có data cũ)
+    // ================================================================
+    async function bv2_CascadeFill(vanBan, loaiBanVe, loaiKhuVuc, idDonGia) {
+        // Cấp 1: chọn VB
+        $('#dg2_VanBan').val(vanBan);
+
+        // Cấp 2: load + chọn loại bản vẽ
+        try {
+            const d2 = await apiGet(`/api/dodac/dongiathanhtoan/loaibanve?vanBan=${encodeURIComponent(vanBan)}`);
+            let o2 = '<option value="">-- Chọn --</option>';
+            (d2 || []).forEach(x => { o2 += `<option value="${x}">${x}</option>`; });
+            $('#dg2_LoaiBanVe').html(o2).prop('disabled', false).val(loaiBanVe);
+        } catch(e) { return; }
+
+        if (!loaiBanVe) return;
+
+        // Cấp 3: load + chọn khu vực
+        try {
+            const d3 = await apiGet(
+                `/api/dodac/dongiathanhtoan/khu-vuc?vanBan=${encodeURIComponent(vanBan)}&loaiBanVe=${encodeURIComponent(loaiBanVe)}`
+            );
+            let o3 = '<option value="">-- Chọn --</option>';
+            (d3 || []).forEach(x => { o3 += `<option value="${x}">${x}</option>`; });
+            $('#dg2_LoaiKhuVuc').html(o3).prop('disabled', false).val(loaiKhuVuc);
+        } catch(e) { return; }
+
+        if (!loaiKhuVuc) return;
+
+        // Cấp 4: load + chọn định mức
+        try {
+            const d4 = await apiGet(
+                `/api/dodac/dongiathanhtoan/chitiet?vanBan=${encodeURIComponent(vanBan)}&loaiBanVe=${encodeURIComponent(loaiBanVe)}&loaiKhuVuc=${encodeURIComponent(loaiKhuVuc)}`
+            );
+            let o4 = '<option value="">-- Chọn --</option>';
+            (d4 || []).forEach(x => {
+                o4 += `<option value="${x.id}"
+                    data-sotien="${x.soTien}"
+                    data-chiphi="${x.chiPhiLaoDong}"
+                    data-lamtron="${x.tienLamTron}">
+                    ${x.dinhMucTinh}
+                </option>`;
+            });
+            $('#dg2_DinhMucTinh').html(o4).prop('disabled', false).val(idDonGia).trigger('change');
+        } catch(e) { console.error(e); }
+    }
+
+    // ================================================================
+    // LƯU THANH TOÁN → POST /api/dodac/dongiathanhtoan/thanhtoan
+    // ThanhToanBanVeDto: { idBanVe, idDonGia, daThanhToan,
+    //                      kyHieuHoaDon, soHoaDon, ngayHoaDon }
+    // ================================================================
+    async function bv2_LuuThanhToan() {
+        const idDonGia = parseInt($('#dg2_DinhMucTinh').val()) || 0;
+        if (!idDonGia) {
+            alert('Vui lòng chọn đến tận Định mức tính!');
+            return;
+        }
+        const body = {
+            idBanVe:     parseInt($('#dg2_IDBanVe').val()),
+            idDonGia,
+            daThanhToan: $('#dg2_DaThanhToan').is(':checked'),
+            kyHieuHoaDon: $('#dg2_KyHieuHoaDon').val(),
+            soHoaDon:     $('#dg2_SoHoaDon').val(),
+            ngayHoaDon:   $('#dg2_NgayHoaDon').val()
+        };
+        try {
+            const res = await apiPost('/api/dodac/dongiathanhtoan/thanhtoan', body);
+            if (res && res.success) {
+                alert('Đã lưu thông tin thanh toán!');
+                bootstrap.Modal.getInstance(
+                    document.getElementById('bv2_ModalDonGia')
+                ).hide();
+                await bv2_LoadDanhSach(); // refresh badge "đã thu"
+            } else {
+                alert('Lỗi: ' + (res?.message || ''));
+            }
+        } catch(e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    }
+
+    // ================================================================
+    // HELPER: xóa số tiền
+    // ================================================================
+    function bv2_ClearTien() {
+        $('#dg2_SoTien, #dg2_ChiPhiLaoDong, #dg2_TienLamTron').val('');
+    }
+</script>

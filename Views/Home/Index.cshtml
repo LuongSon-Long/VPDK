@@ -1,0 +1,19 @@
+﻿@{
+    ViewData["Title"] = "Trang chủ";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Chào mừng đến với hệ thống</h1>
+    <p>Bạn đã đăng nhập thành công.</p>
+    <div class="card mt-4">
+        <div class="card-header">
+            Thông tin người dùng
+        </div>
+        <div class="card-body">
+            <p><strong>Tên đăng nhập:</strong> @Context.Session.GetString("Username")</p>
+            <p><strong>Họ tên:</strong> @Context.Session.GetString("FullName")</p>
+            <p><strong>Chức vụ:</strong> @Context.Session.GetString("ChucVu")</p>
+            <p><strong>Đơn vị công tác:</strong> @Context.Session.GetString("DonViCongTac")</p>
+        </div>
+    </div>
+</div>

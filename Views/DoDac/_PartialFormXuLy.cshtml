@@ -1,0 +1,625 @@
+﻿@{
+    // Partial này không nhận model - tất cả data load từ API qua JS
+}
+
+<div class="container-fluid p-2">
+    <div id="fxl_Loading" class="text-center py-4">
+        <div class="spinner-border text-primary"></div>
+        <p class="mt-2 small">Đang tải dữ liệu hồ sơ...</p>
+    </div>
+
+    <div id="fxl_Content" style="display:none">
+        <input type="hidden" id="fxl_HoSoID" />
+        <input type="hidden" id="fxl_IDDonViCongTac" />
+        <input type="hidden" id="fxl_IDQuyTrinh" />
+        <input type="hidden" id="fxl_IDBuocQuyTrinh" />
+        <input type="hidden" id="fxl_GuidStep" />
+
+        <!-- 1. THÔNG TIN ĐĂNG KÝ -->
+        <div class="card mb-3 border-light shadow-sm">
+            <div class="card-header bg-primary text-white py-1 small fw-bold">
+                <i class="bi bi-person-lines-fill"></i> 1. THÔNG TIN ĐĂNG KÝ
+            </div>
+            <div class="card-body p-2">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="small fw-bold">Tổ chức, cá nhân đăng ký:</label>
+                        <input type="text" class="form-control form-control-sm" id="fxl_NguoiDangKy" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small fw-bold">Số CC/CCCD/CMND:</label>
+                        <input type="text" class="form-control form-control-sm" id="fxl_CCCD" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small fw-bold">Số điện thoại:</label>
+                        <input type="text" class="form-control form-control-sm" id="fxl_SoDienThoai" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="small fw-bold">Địa chỉ thửa đất:</label>
+                        <input type="text" class="form-control form-control-sm" id="fxl_DiaChiThuaDat" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small fw-bold">Tỉnh/Thành:</label>
+                        <input type="text" class="form-control form-control-sm bg-light" id="fxl_TenTinh" readonly />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small fw-bold">Xã/phường:</label>
+                        <input type="text" class="form-control form-control-sm bg-light" id="fxl_TenXa" readonly />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="small fw-bold">Số phát hành GCN:</label>
+                        <input type="text" class="form-control form-control-sm" id="fxl_SeriGCN" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="small fw-bold">Mục đích đăng ký:</label>
+                        <input type="text" class="form-control form-control-sm" id="fxl_MucDichDangKy" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small fw-bold">Số hợp đồng:</label>
+                        <input type="text" class="form-control form-control-sm bg-light" id="fxl_SoHopDong" readonly />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small fw-bold">Ngày hợp đồng:</label>
+                        <input type="text" class="form-control form-control-sm bg-light" id="fxl_NgayHopDong" readonly />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. THÔNG TIN XỬ LÝ -->
+        <div class="card mb-3 border-light shadow-sm">
+            <div class="card-header bg-success text-white py-1 small fw-bold">
+                <i class="bi bi-file-earmark-medical"></i> 2. THÔNG TIN XỬ LÝ
+            </div>
+            <div class="card-body p-2">
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="small fw-bold">Số phiếu giao:</label>
+                        <input type="text" class="form-control form-control-sm" id="fxl_SoPhieuGiao" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small fw-bold text-danger">Ngày giao:</label>
+                        <input type="text" class="form-control form-control-sm"
+                               id="fxl_NgayGiao" placeholder="dd/MM/yyyy" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small fw-bold text-danger">Ngày yêu cầu:</label>
+                        <input type="text" class="form-control form-control-sm"
+                               id="fxl_NgayYeuCau" placeholder="dd/MM/yyyy" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small fw-bold text-danger">Ngày đo:</label>
+                        <input type="text" class="form-control form-control-sm"
+                               id="fxl_NgayDo" placeholder="dd/MM/yyyy" />
+                    </div>
+                    <div class="col-md-6 mt-1">
+                        <label class="small fw-bold">
+                            <i class="bi bi-person-badge"></i> Giao người đo:
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light">
+                                <i class="bi bi-house-door small"></i>
+                            </span>
+                            <select class="form-select border-success" id="fxl_IdTaiKhoanDo">
+                                <option value="">-- Chọn nhân viên --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-12 mt-1">
+                        <label class="small fw-bold">Ghi chú:</label>
+                        <textarea class="form-control form-control-sm" id="fxl_GhiChu" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. XỬ LÝ HỒ SƠ -->
+        <div class="card border-danger shadow-sm mb-3">
+            <div class="card-header bg-danger text-white py-1 small fw-bold">
+                <i class="bi bi-diagram-3-fill"></i> 3. XỬ LÝ HỒ SƠ
+            </div>
+            <div class="card-body p-2 bg-light text-center" id="fxl_BtnGroupXuLy">
+                <div class="spinner-border spinner-border-sm text-secondary"></div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+            <div id="fxl_LeftButtons"></div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-success btn-sm px-4 fw-bold" onclick="fxl_Save()">
+                    <i class="bi bi-save"></i> LƯU CHỈNH SỬA
+                </button>
+                <button class="btn btn-secondary btn-sm fw-bold" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal chọn người nhận -->
+<div class="modal fade" id="fxl_modalChonNguoiNhan" tabindex="-1"
+     data-bs-backdrop="static" style="z-index:1070;">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white py-2">
+                <h6 class="modal-title fw-bold" id="fxl_lblTenBuocChuyen"></h6>
+                <button type="button" class="btn-close btn-close-white"
+                        onclick="fxl_closeChonNguoiNhan()"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="d-flex align-items-center gap-2 mb-3 bg-light p-2 rounded border">
+                    <div class="flex-grow-1">
+                        <select class="form-select form-select-sm" id="fxl_cboDonViKhac" disabled></select>
+                    </div>
+                    <div class="form-check form-switch pt-1">
+                        <input class="form-check-input" type="checkbox" id="fxl_chkDonViKhac"
+                               onchange="fxl_toggleDonViKhac(this)">
+                        <label class="form-check-label small fw-bold text-danger"
+                               for="fxl_chkDonViKhac">Lựa chọn đơn vị khác</label>
+                    </div>
+                </div>
+                <div class="table-responsive border rounded" style="max-height:350px;">
+                    <table class="table table-sm table-hover table-bordered mb-0 align-middle"
+                           style="font-size:12px;">
+                        <thead class="bg-secondary text-white sticky-top">
+                            <tr>
+                                <th class="text-center" style="width:40px">STT</th>
+                                <th>Tên tài khoản</th>
+                                <th>Đơn vị công tác</th>
+                                <th class="text-center" style="width:80px">Chọn</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fxl_tblTaiKhoanNhan"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-1">
+                <button class="btn btn-secondary btn-sm"
+                        onclick="fxl_closeChonNguoiNhan()">
+                    Hủy bỏ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal lưu trữ -->
+<div class="modal fade" id="fxl_modalNhapLuuTru" tabindex="-1"
+     style="z-index:1070;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning py-2">
+                <h6 class="modal-title fw-bold">LƯU TRỮ HỒ SƠ</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="small fw-bold">Kho lưu:</label>
+                        <input type="text" id="fxl_Kho" list="fxl_listKho"
+                               class="form-control form-control-sm" />
+                        <datalist id="fxl_listKho"></datalist>
+                    </div>
+                    <div class="col-6">
+                        <label class="small fw-bold">Giá (Kệ):</label>
+                        <input type="text" id="fxl_Gia" list="fxl_listGia"
+                               class="form-control form-control-sm" />
+                        <datalist id="fxl_listGia"></datalist>
+                    </div>
+                    <div class="col-6">
+                        <label class="small fw-bold">Ngăn:</label>
+                        <input type="text" id="fxl_Ngan"
+                               class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-6">
+                        <label class="small fw-bold text-danger">Số HS Lưu:</label>
+                        <input type="text" id="fxl_SoHSLuu"
+                               class="form-control form-control-sm fw-bold" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-1">
+                <button class="btn btn-primary btn-sm" onclick="fxl_XacNhanLuuKho()">
+                    Xác nhận lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // BIẾN TOÀN CỤC CỦA PARTIAL
+    // ============================================================
+    var fxl_IdBuocTiepTheo = 0;
+    var fxl_TenBuocChuyen  = '';
+
+    // ============================================================
+    // KHỞI TẠO — gọi từ openXuLy() trong Index
+    // ============================================================
+    async function fxl_Init(hoSoId) {
+        $('#fxl_Loading').show();
+        $('#fxl_Content').hide();
+
+        try {
+            // Lấy song song: hồ sơ + kho list
+            const [hoSo, khoList] = await Promise.all([
+                apiGet(`/api/dodac/hosododac/${hoSoId}`),
+                apiGet('/api/dodac/luutru/kho-list').catch(() => [])
+            ]);
+            if (!hoSo) return;
+
+            // Gán hidden fields
+            $('#fxl_HoSoID').val(hoSo.id);
+            $('#fxl_IDDonViCongTac').val(hoSo.idDonViCongTac);
+            $('#fxl_IDQuyTrinh').val(hoSo.idQuyTrinh);
+            $('#fxl_IDBuocQuyTrinh').val(hoSo.idBuocQuyTrinh);
+
+            // Gán thông tin đăng ký
+            $('#fxl_NguoiDangKy').val(hoSo.nguoiDangKy   || '');
+            $('#fxl_CCCD').val(hoSo.cccd                  || '');
+            $('#fxl_SoDienThoai').val(hoSo.soDienThoai    || '');
+            $('#fxl_DiaChiThuaDat').val(hoSo.diaChiThuaDat|| '');
+            $('#fxl_TenTinh').val(hoSo.tenTinh            || '');
+            $('#fxl_TenXa').val(hoSo.tenXa                || '');
+            $('#fxl_SeriGCN').val(hoSo.seriGCN            || '');
+            $('#fxl_MucDichDangKy').val(hoSo.mucDichDangKy|| '');
+            $('#fxl_SoHopDong').val(hoSo.soHopDong        || '');
+            $('#fxl_NgayHopDong').val(hoSo.ngayHopDong    || '');
+
+            // Gán thông tin xử lý — DateOnly từ API về dạng "2024-01-21"
+            $('#fxl_SoPhieuGiao').val(hoSo.soPhieuGiao || '');
+            $('#fxl_NgayGiao').val(hoSo.ngayGiao     ? formatDisplayDate(hoSo.ngayGiao)   : '');
+            $('#fxl_NgayYeuCau').val(hoSo.ngayYeuCau ? formatDisplayDate(hoSo.ngayYeuCau) : '');
+            $('#fxl_NgayDo').val(hoSo.ngayDo         ? formatDisplayDate(hoSo.ngayDo)     : '');
+            $('#fxl_GhiChu').val(hoSo.ghiChu         || '');
+
+            // Load nhân viên theo đơn vị hồ sơ
+            await fxl_loadNhanVien(hoSo.idDonViCongTac, hoSo.idTaiKhoanDo);
+
+            // Kho datalist
+            $('#fxl_listKho').html((khoList || []).map(k => `<option value="${k}">`).join(''));
+
+            // Load lưu trữ nếu có
+            try {
+                const luuTru = await apiGet(`/api/dodac/luutru/by-hoso/${hoSoId}`);
+                if (luuTru && luuTru.id) {
+                    $('#fxl_Kho').val(luuTru.kho    || '');
+                    $('#fxl_Gia').val(luuTru.gia    || '');
+                    $('#fxl_Ngan').val(luuTru.ngan  || '');
+                    $('#fxl_SoHSLuu').val(luuTru.soHSLuu || '');
+                }
+            } catch {}
+
+            // Load quy trình → render nút chuyển bước
+            await fxl_loadQuyTrinh(hoSo.idQuyTrinh, hoSo.idBuocQuyTrinh, hoSo.trangThaiDo);
+
+            $('#fxl_Loading').hide();
+            $('#fxl_Content').show();
+
+        } catch (e) {
+            $('#fxl_Loading').html(
+                `<div class="alert alert-danger m-3">Lỗi tải hồ sơ: ${e.message}</div>`
+            );
+        }
+    }
+
+    // ============================================================
+    // LOAD NHÂN VIÊN THEO ĐƠN VỊ
+    // ============================================================
+    async function fxl_loadNhanVien(idDonVi, selectedId = null) {
+        const id = idDonVi || 0;
+        try {
+            const data = await apiGet(`/api/dodac/dropdown/taikhoan-by-donvi/${id}`);
+            let opts = '<option value="">-- Chọn nhân viên --</option>';
+            (data || []).forEach(nv => {
+                const sel = nv.id == selectedId ? 'selected' : '';
+                opts += `<option value="${nv.id}" ${sel}>${nv.ten}</option>`;
+            });
+            $('#fxl_IdTaiKhoanDo').html(opts);
+        } catch {
+            $('#fxl_IdTaiKhoanDo').html('<option value="">-- Lỗi tải nhân viên --</option>');
+        }
+    }
+
+    // ============================================================
+    // LOAD QUY TRÌNH → RENDER NÚT CHUYỂN BƯỚC + LEFT BUTTONS
+    // Dùng GET /api/admin/QuyTrinh/{id}/details rồi filter
+    // ============================================================
+        async function fxl_loadQuyTrinh(idQuyTrinh, idBuocHienTai, trangThaiDo) {
+        const container = $('#fxl_BtnGroupXuLy');
+        const leftDiv   = $('#fxl_LeftButtons');
+
+        if (!idQuyTrinh || !idBuocHienTai) {
+            container.html('<div class="alert alert-warning small p-1 mb-0">Chưa có quy trình xử lý.</div>');
+            return;
+        }
+
+        try {
+            const qt = await apiGet(`/api/admin/QuyTrinh/${idQuyTrinh}/details`);
+            if (!qt) {
+                container.html('<div class="alert alert-warning small p-1 mb-0">Không tải được quy trình.</div>');
+                return;
+            }
+
+            // FIX 1: field đúng là "steps" và "transitions"
+            const buocHT = (qt.steps || []).find(b => b.id == idBuocHienTai);
+            const guidStep = buocHT?.guid || '';
+            $('#fxl_GuidStep').val(guidStep);
+
+            // FIX 2: field đúng là "idBuocQuyTrinh" (không phải idBuocHienTai)
+            const nhayBuocCuaBuocNay = (qt.transitions || [])
+                .filter(n => n.idBuocQuyTrinh == idBuocHienTai);
+
+            // Render nút chuyển bước
+            if (nhayBuocCuaBuocNay.length === 0) {
+                container.html('<div class="alert alert-warning small p-1 mb-0">Không có bước chuyển tiếp.</div>');
+            } else {
+                let btns = '<label class="small fw-bold d-block mb-2 text-muted">Thực hiện chuyển tiếp hồ sơ:</label>';
+                nhayBuocCuaBuocNay.forEach(n => {
+                    btns += `<button type="button" class="btn btn-outline-danger btn-sm px-3 m-1 shadow-sm"
+                                onclick="fxl_openChonNguoiNhan(${n.idBuocTiepTheo}, '${(n.tenBuocChuyen || '').replace(/'/g, "\\'")}')">
+                                <i class="bi bi-arrow-right-circle"></i> ${n.tenBuocChuyen}
+                             </button>`;
+                });
+                container.html(btns);
+            }
+
+            // FIX 3: guid là GUID dài, không phải "LuuTru"/"KetThuc"
+            // → dùng trangThaiDo hoặc tên bước để xác định
+            leftDiv.empty();
+            const tenBuoc = (buocHT?.tenBuocQt || '').toLowerCase();
+            if (tenBuoc.includes('lưu trữ') || tenBuoc.includes('luu tru')) {
+                leftDiv.html(`<button class="btn btn-warning btn-sm fw-bold" onclick="fxl_thucThiLuuTru()">
+                    <i class="bi bi-archive"></i> LƯU TRỮ</button>`);
+            } else if (tenBuoc.includes('bàn giao') || tenBuoc.includes('kết quả') || tenBuoc.includes('ket qua')) {
+                leftDiv.html(`<button class="btn btn-danger btn-sm fw-bold" onclick="fxl_thucThiTraKQ()">
+                    <i class="bi bi-check2-circle"></i> TRẢ KẾT QUẢ</button>`);
+            }
+
+        } catch (e) {
+            container.html(`<div class="alert alert-danger small p-1 mb-0">Lỗi tải quy trình: ${e.message}</div>`);
+        }
+    }
+
+    // ============================================================
+    // LƯU CHỈNH SỬA → PUT /api/dodac/hosododac/{id}
+    // ============================================================
+    async function fxl_Save() {
+        const id  = parseInt($('#fxl_HoSoID').val());
+        const btn = $('button[onclick="fxl_Save()"]');
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+
+        const body = {
+            id,
+            soPhieuGiao:   $('#fxl_SoPhieuGiao').val(),
+            nguoiDangKy:   $('#fxl_NguoiDangKy').val(),
+            cccd:          $('#fxl_CCCD').val(),
+            soDienThoai:   $('#fxl_SoDienThoai').val(),
+            diaChiThuaDat: $('#fxl_DiaChiThuaDat').val(),
+            seriGCN:       $('#fxl_SeriGCN').val(),
+            mucDichDangKy: $('#fxl_MucDichDangKy').val(),
+            ngayGiaoStr:   $('#fxl_NgayGiao').val(),
+            ngayYeuCauStr: $('#fxl_NgayYeuCau').val(),
+            ngayDoStr:     $('#fxl_NgayDo').val(),
+            ghiChu:        $('#fxl_GhiChu').val(),
+            idTaiKhoanDo:  parseInt($('#fxl_IdTaiKhoanDo').val()) || null
+        };
+
+        try {
+            const res = await fetch(`/api/dodac/hosododac/${id}`, {
+                method:  'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(body)
+            });
+            if (res.status === 401) { window.location.href = '/Account/Login'; return; }
+            const json = await res.json();
+            if (json.success) {
+                alert('Đã cập nhật thông tin thành công!');
+                $('#modalXuLy').modal('hide');
+                renderDanhSachHoSo(); // Refresh danh sách ở Index
+            } else {
+                alert('Lỗi: ' + (json.message || 'Không xác định'));
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        } finally {
+            btn.prop('disabled', false).html('<i class="bi bi-save"></i> LƯU CHỈNH SỬA');
+        }
+    }
+
+    // ============================================================
+    // TRẢ KẾT QUẢ → POST /api/dodac/hosododac/{id}/ketthuc
+    // ============================================================
+    async function fxl_thucThiTraKQ() {
+        if (!confirm('Xác nhận đã hoàn thành và trả kết quả?')) return;
+        const id = parseInt($('#fxl_HoSoID').val());
+        try {
+            const res = await fetch(`/api/dodac/hosododac/${id}/ketthuc`, { method: 'POST' });
+            if (res.status === 401) { window.location.href = '/Account/Login'; return; }
+            const json = await res.json();
+            if (json.success) {
+                alert('Đã trả kết quả!');
+                $('#modalXuLy').modal('hide');
+                renderDanhSachHoSo();
+            } else {
+                alert('Lỗi: ' + (json.message || ''));
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    }
+
+    // ============================================================
+    // CHỌN NGƯỜI NHẬN → POST /api/dodac/hosododac/chuyen-buoc
+    // ============================================================
+    async function fxl_openChonNguoiNhan(idBuocTiep, tenBuoc) {
+        fxl_IdBuocTiepTheo = idBuocTiep;
+        fxl_TenBuocChuyen  = tenBuoc;
+        $('#fxl_lblTenBuocChuyen').html(
+            `<i class="bi bi-send-check"></i> Chuyển hồ sơ: ${tenBuoc}`
+        );
+
+        // Load tất cả đơn vị vào dropdown
+        try {
+            const dsDonVi = await apiGet('/api/dodac/dropdown/all-donvi');
+            let opts = '<option value="">-- Chọn đơn vị --</option>';
+            (dsDonVi || []).forEach(dv => {
+                opts += `<option value="${dv.id}">${dv.ten}</option>`;
+            });
+            $('#fxl_cboDonViKhac').html(opts);
+
+            // Pre-select đơn vị của hồ sơ
+            const idDonViHoSo = $('#fxl_IDDonViCongTac').val();
+            if (idDonViHoSo) $('#fxl_cboDonViKhac').val(idDonViHoSo);
+
+            await fxl_loadTaiKhoanModal(idDonViHoSo);
+            new bootstrap.Modal(document.getElementById('fxl_modalChonNguoiNhan')).show();
+        } catch (e) {
+            alert('Lỗi tải danh sách đơn vị: ' + e.message);
+        }
+    }
+
+    function fxl_closeChonNguoiNhan() {
+        bootstrap.Modal.getInstance(document.getElementById('fxl_modalChonNguoiNhan'))?.hide();
+    }
+
+    async function fxl_toggleDonViKhac(checkbox) {
+        const $cbo = $('#fxl_cboDonViKhac');
+        if (checkbox.checked) {
+            $cbo.prop('disabled', false);
+            $cbo.off('change').on('change', function () {
+                fxl_loadTaiKhoanModal($(this).val());
+            });
+        } else {
+            $cbo.prop('disabled', true);
+            const idDonViHoSo = $('#fxl_IDDonViCongTac').val();
+            $cbo.val(idDonViHoSo);
+            await fxl_loadTaiKhoanModal(idDonViHoSo);
+        }
+    }
+
+    async function fxl_loadTaiKhoanModal(idDonVi) {
+        const tbody = $('#fxl_tblTaiKhoanNhan');
+        tbody.html('<tr><td colspan="4" class="text-center p-2"><div class="spinner-border spinner-border-sm"></div></td></tr>');
+        const id = idDonVi || 0;
+        try {
+            const data = await apiGet(`/api/dodac/dropdown/taikhoan-by-donvi/${id}`);
+            if (!data || data.length === 0) {
+                tbody.html('<tr><td colspan="4" class="text-center text-muted">Không có tài khoản nào</td></tr>');
+                return;
+            }
+            // DropdownDto chỉ có id + ten, bỏ cột đơn vị
+            tbody.html(data.map((item, i) => `
+                <tr>
+                    <td class="text-center">${i + 1}</td>
+                    <td>${item.ten}</td>
+                    <td class="text-muted small">—</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-primary"
+                            onclick="fxl_thucThiChuyen(${item.id}, '${(item.ten || '').replace(/'/g, "\\'")}')">
+                            Chọn
+                        </button>
+                    </td>
+                </tr>`).join(''));
+        } catch (e) {
+            tbody.html(`<tr><td colspan="4" class="text-danger text-center small">Lỗi: ${e.message}</td></tr>`);
+        }
+    }
+
+    async function fxl_thucThiChuyen(idTaiKhoanNhan, tenNguoiNhan) {
+        if (!confirm(`Bạn có chắc chắn muốn chuyển hồ sơ này cho [${tenNguoiNhan}] không?`)) return;
+        const body = {
+            hoSoId:         parseInt($('#fxl_HoSoID').val()),
+            idBuocTiepTheo: fxl_IdBuocTiepTheo,
+            idTaiKhoanNhan: idTaiKhoanNhan,
+            ghiChu:         $('#fxl_GhiChu').val()
+        };
+        try {
+            const res = await fetch('/api/dodac/hosododac/chuyen-buoc', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(body)
+            });
+            if (res.status === 401) { window.location.href = '/Account/Login'; return; }
+            const json = await res.json();
+            if (json.success) {
+                fxl_closeChonNguoiNhan();
+                $('#modalXuLy').modal('hide');
+                renderDanhSachHoSo();
+                alert('Đã luân chuyển hồ sơ thành công!');
+            } else {
+                alert('Lỗi: ' + (json.message || ''));
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    }
+
+    // ============================================================
+    // LƯU TRỮ → POST /api/dodac/luutru/save
+    // ============================================================
+    function fxl_thucThiLuuTru() {
+        new bootstrap.Modal(document.getElementById('fxl_modalNhapLuuTru')).show();
+    }
+
+    async function fxl_XacNhanLuuKho() {
+        const btn = $('#fxl_modalNhapLuuTru .btn-primary');
+        btn.prop('disabled', true).text('Đang lưu...');
+        const body = {
+            iDDangKyDoDac: parseInt($('#fxl_HoSoID').val()),
+            kho:           $('#fxl_Kho').val(),
+            gia:           $('#fxl_Gia').val(),
+            ngan:          $('#fxl_Ngan').val(),
+            soHSLuu:       $('#fxl_SoHSLuu').val()
+        };
+        try {
+            const res = await fetch('/api/dodac/luutru/save', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(body)
+            });
+            if (res.status === 401) { window.location.href = '/Account/Login'; return; }
+            const json = await res.json();
+            if (json.success) {
+                alert('Đã lưu kho thành công!');
+                bootstrap.Modal.getInstance(document.getElementById('fxl_modalNhapLuuTru')).hide();
+                renderDanhSachHoSo();
+            } else {
+                alert('Lỗi: ' + (json.message || ''));
+                btn.prop('disabled', false).text('Xác nhận lưu');
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+            btn.prop('disabled', false).text('Xác nhận lưu');
+        }
+    }
+
+    // ============================================================
+    // GIA - KHO DATALIST
+    // ============================================================
+    async function fxl_loadGiaTheoKho(khoName) {
+        if (!khoName) return;
+        try {
+            const data = await apiGet(`/api/dodac/luutru/gia-by-kho/${encodeURIComponent(khoName)}`);
+            $('#fxl_listGia').html((data || []).map(g => `<option value="${g}">`).join(''));
+            $('#fxl_Gia').val('');
+        } catch {}
+    }
+
+    async function fxl_loadSoHSLuuTuDong() {
+        const kho  = $('#fxl_Kho').val();
+        const gia  = $('#fxl_Gia').val();
+        const ngan = $('#fxl_Ngan').val();
+        if (!kho || !gia || !ngan) return;
+        try {
+            const res = await apiGet(
+                `/api/dodac/luutru/next-so-hsluu?kho=${encodeURIComponent(kho)}&gia=${encodeURIComponent(gia)}&ngan=${encodeURIComponent(ngan)}`
+            );
+            $('#fxl_SoHSLuu').val(res.soHSLuu || '');
+        } catch {}
+    }
+
+    $(document).on('change', '#fxl_Kho',           function () { fxl_loadGiaTheoKho($(this).val()); });
+    $(document).on('change', '#fxl_Kho, #fxl_Gia, #fxl_Ngan', function () { fxl_loadSoHSLuuTuDong(); });
+</script>

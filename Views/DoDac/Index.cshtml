@@ -1,0 +1,1630 @@
+﻿@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    ViewData["Title"] = "Xử lý hồ sơ đo đạc";
+    var canBo = HttpContextAccessor.HttpContext?.Session?.GetString("FullName") ?? "Chưa đăng nhập";
+    var donVi = HttpContextAccessor.HttpContext?.Session?.GetString("DonViCongTac") ?? "Chưa xác định";
+    var tenChucVu = HttpContextAccessor.HttpContext?.Session?.GetString("ChucVu") ?? "";
+}
+
+<div class="card shadow-sm mb-3 border-0 bg-light">
+    <div class="card-body py-2 d-flex justify-content-between align-items-center">
+        <div class="header-info d-flex align-items-center">
+            <a href="@Url.Action("Index", "Home")" class="btn btn-outline-secondary btn-sm me-3">
+                <i class="bi bi-house-door-fill"></i> Trang chủ
+            </a>
+            <span>Cán bộ xử lý: <b>@canBo</b></span>
+            <span class="mx-2">|</span>
+            <span>Đơn vị: <b>@donVi</b></span>
+        </div>
+        <div class="badge bg-primary">Thời điểm đăng nhập: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="list-group shadow-sm" id="menuDoDac">
+            @if (true)
+            {
+                <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
+                   onclick="loadTask('TiepNhan', this)">Tiếp nhận hồ sơ</a>
+            }
+            <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
+               onclick="loadTask('XuLy', this)">Xử lý hồ sơ</a>
+            <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
+               onclick="loadTask('TraCuu', this)">Tra cứu hồ sơ</a>
+            <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
+               onclick="moModalQuanLySoHieu()"><i class="bi bi-list-ol me-2"></i>Quản lý số hiệu bản vẽ</a>
+            <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
+               onclick="loadTask('BaoCao', this)">Tổng hợp, báo cáo</a>
+            @if (true)
+            {
+                <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
+                   onclick="moModalXuatDSBanVe()">
+                    <i class="bi bi-file-earmark-excel-fill me-2"></i> Xuất DS bản vẽ
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="col-md-9">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <h6 class="fw-bold mb-0 text-uppercase" id="lblTieuDeVung">Hồ sơ đang xử lý</h6>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="d-flex justify-content-end align-items-center">
+                            <div class="d-flex align-items-center me-3">
+                                <span class="small me-2">Dòng:</span>
+                                <div class="input-group input-group-sm" style="width: 100px;">
+                                    <button class="btn btn-outline-primary" onclick="changeMainPageSize(-5)">-</button>
+                                    <input type="text" id="main_PageSize" class="form-control text-center bg-white" value="10" readonly>
+                                    <button class="btn btn-outline-primary" onclick="changeMainPageSize(5)">+</button>
+                                </div>
+                            </div>
+                            <div class="input-group input-group-sm" style="width: 250px;">
+                                <input type="text" id="txtSearch" class="form-control" placeholder="Tìm tên, số hợp đồng...">
+                                <button class="btn btn-primary" onclick="searchHoSo()"><i class="bi bi-search"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0" id="vungNoiDung">
+                <div class="p-5 text-center">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2">Đang tải dữ liệu...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== MODALS ===================== -->
+
+<div class="modal fade" id="modalXuLy" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-gear-wide-connected"></i> XỬ LÝ HỒ SƠ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="contentXuLy"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalLichSu" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="bi bi-clock-history"></i> LỊCH SỬ XỬ LÝ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" id="contentLichSu"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalHSQuet" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-file-earmark-pdf"></i> QUẢN LÝ FILE ĐÍNH KÈM</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" id="contentHSQuet"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalBanVe" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title"><i class="bi bi-map"></i> BẢN VẼ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" id="modalBanVeContent"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalSoManh" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white py-2">
+                <h6 class="modal-title">Cấp Số Hiệu Tự Động</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="sh_MaXa_Hidden" />
+                <div class="mb-3">
+                    <label class="small fw-bold">Địa danh (Xã/Phường) — kiểm tra kỹ trước khi lấy số:</label>
+                    <input type="text" id="sh_TenXa_Display" class="form-control bg-light" readonly />
+                </div>
+                <div class="mb-3">
+                    <label class="small fw-bold">Năm đo đạc:</label>
+                    <input type="number" id="sh_Nam" class="form-control" value="@DateTime.Now.Year" />
+                </div>
+                <div id="resultArea" class="mt-3 p-2 border rounded bg-light d-none text-center">
+                    <span class="small text-muted">Số hiệu vừa cấp:</span><br />
+                    <strong class="text-danger h3" id="txtSoHieuMoi">---</strong>
+                </div>
+            </div>
+            <div class="modal-footer py-1">
+                <button type="button" class="btn btn-success w-100" onclick="thucThiXinSo()">
+                    <i class="bi bi-magic"></i> THỰC HIỆN XIN SỐ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalQuanLySoHieu" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Quản lý số hiệu bản vẽ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-5">
+                        <label class="small fw-bold">Chọn Tỉnh:</label>
+                        <select id="sel_Tinh" class="form-select form-select-sm">
+                            <option value="">-- Đang tải tỉnh... --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="small fw-bold">Chọn Năm:</label>
+                        <select id="sel_Nam" class="form-select form-select-sm">
+                            @for (int i = DateTime.Now.Year; i >= 2020; i--)
+                            {
+                                <option value="@i">Năm @i</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-primary btn-sm w-100" onclick="loadSoHieuMax()">
+                            <i class="bi bi-search"></i> Xem danh sách
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="table table-sm table-bordered table-hover">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Mã Xã</th>
+                                <th>Tên Xã/Phường</th>
+                                <th class="text-center">Số hiệu lớn nhất</th>
+                                <th class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodySoHieuMax">
+                            <tr><td colspan="4" class="text-center text-muted">Chọn tỉnh và nhấn Xem danh sách</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalChiTietSoHieu" tabindex="-1" style="z-index: 1060;">
+    <div class="modal-dialog modal-md shadow-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white py-2">
+                <h6 class="modal-title">Lịch sử cấp số: <span id="lblTenXa"></span></h6>
+                <button type="button" class="btn-close" onclick="bootstrap.Modal.getInstance(document.getElementById('modalChiTietSoHieu')).hide()"></button>
+            </div>
+            <div class="modal-body p-0">
+                <table class="table table-sm table-striped mb-0" style="font-size: 0.8rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center">Số hiệu</th>
+                            <th>Cán bộ lấy số</th>
+                            <th>Đơn vị</th>
+                            <th>Ngày lấy</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyChiTietSoHieu"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalThanhLy" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="bi bi-file-earmark-word-fill"></i> CHỌN TEMPLATE THANH LÝ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">1. Chọn mẫu Word (.docx)</label>
+                    <input type="file" id="fileTemplateThanhLy" class="form-control" accept=".docx" />
+                </div>
+                <div class="row g-2 mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Tên file xuất</label>
+                        <input type="text" id="tenFileXuat" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Ngày lập (dd/mm/yyyy)</label>
+                        <input type="text" id="inpNgayLap" class="form-control"
+                               placeholder="dd/mm/yyyy" value="@DateTime.Now.ToString("dd/MM/yyyy")" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Tổng tiền thanh lý</label>
+                        <input type="number" id="tienThanhLy" class="form-control" value="0" oninput="tinhTienConLai()">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Tiền đã ứng</label>
+                        <input type="number" id="tienUng" class="form-control" value="0" oninput="tinhTienConLai()">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Tiền còn lại</label>
+                        <input type="number" id="tienConLai" class="form-control" value="0" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-warning fw-bold" id="btnXuatHoSo" onclick="xuatHoSoThanhLy()">
+                    <i class="bi bi-download"></i> Xuất hồ sơ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalXuatDSBanVe" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-file-earmark-excel"></i> XUẤT DANH SÁCH BẢN VẼ CHI TIẾT</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Từ ngày</label>
+                        <input type="text" id="xuat_TuNgay" class="form-control"
+                               placeholder="dd/MM/yyyy" value="@DateTime.Now.ToString("01/01/yyyy")" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Đến ngày</label>
+                        <input type="text" id="xuat_DenNgay" class="form-control"
+                               placeholder="dd/MM/yyyy" value="@DateTime.Now.ToString("dd/MM/yyyy")" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Tình trạng thanh toán</label>
+                        <select id="xuat_TrangThaiTT" class="form-select">
+                            <option value="all">-- Tất cả --</option>
+                            <option value="true">Đã thanh toán</option>
+                            <option value="false">Chưa thanh toán</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Tỉnh/Thành</label>
+                        <select id="xuat_IDTinh" class="form-select" onchange="loadDonViTheoTinh(this.value, 'xuat_IDDonVi')">
+                            <option value="">-- Chọn tỉnh --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Đơn vị công tác</label>
+                        <select id="xuat_IDDonVi" class="form-select">
+                            <option value="0">-- Tất cả đơn vị --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-success" onclick="thucHienXuatExcelDSBanVe()">
+                    <i class="bi bi-download"></i> Tải file báo cáo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loader overlay -->
+<div id="loader-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+     background:rgba(255,255,255,0.7); z-index:9999; justify-content:center; align-items:center; flex-direction:column;">
+    <div class="clock-loader"></div>
+    <div class="mt-3 fw-bold text-success">Đang xử lý dữ liệu, vui lòng đợi...</div>
+</div>
+
+<style>
+    .btn-xs {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.75rem;
+        border-radius: 0.2rem;
+    }
+
+    .clock-loader {
+        width: 60px;
+        height: 60px;
+        border: 3px solid #198754;
+        border-radius: 50%;
+        position: relative;
+    }
+
+        .clock-loader::after {
+            content: "";
+            position: absolute;
+            background-color: #198754;
+            top: 5px;
+            left: 48%;
+            width: 3px;
+            height: 25px;
+            transform-origin: bottom;
+            animation: clock-spin 2s linear infinite;
+        }
+
+    @@keyframes clock-spin {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+
+<script>
+    // ============================================================
+    // STATE
+    // ============================================================
+    var currentTask   = 'XuLy';
+    var currentPage   = 1;
+    var currentHoSoId = 0;
+    var allHoSoData   = [];
+
+    // UserId từ session — inject 1 lần lúc render Razor
+    var SESSION_USER_ID = @(HttpContextAccessor.HttpContext?.Session?.GetInt32("UserId") ?? 0);
+
+    // ============================================================
+    // HELPER: gọi API chung
+    // ============================================================
+    async function apiGet(url) {
+        const res = await fetch(url);
+        if (res.status === 401) { window.location.href = '/Account/Login'; return null; }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    }
+
+    async function apiPost(url, body) {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (res.status === 401) { window.location.href = '/Account/Login'; return null; }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    }
+
+    async function apiDelete(url) {
+        const res = await fetch(url, { method: 'DELETE' });
+        if (res.status === 401) { window.location.href = '/Account/Login'; return null; }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    }
+
+    function showLoader(selector) {
+        $(selector).html('<div class="p-5 text-center"><div class="spinner-border text-primary"></div><p class="mt-2">Đang tải...</p></div>');
+    }
+
+    // "dd/MM/yyyy" → "dd/MM/yyyy" (giữ nguyên, API nhận dd/MM/yyyy)
+    // Dùng khi cần convert sang ISO: formatDateToISO
+    function formatDateToISO(str) {
+        if (!str) return '';
+        const p = str.split('/');
+        return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : str;
+    }
+
+    // ============================================================
+    // KHỞI TẠO TRANG
+    // ============================================================
+    $(document).ready(function () {
+        loadDanhSachTinhVaoDropdowns();
+        loadTask('XuLy', null);
+
+        $(document).on('keyup', '#txtSearch', function () {
+            filterTable($(this).val().toLowerCase());
+        });
+    });
+
+    // ============================================================
+    // LOAD TỈNH VÀO TẤT CẢ DROPDOWN CẦN
+    // ============================================================
+    async function loadDanhSachTinhVaoDropdowns() {
+        try {
+            const data = await apiGet('/api/dodac/dropdown/all-tinh');
+            if (!data) return;
+            // sel_Tinh: cho modal Quản lý số hiệu
+            let optsTinh = '<option value="">-- Chọn Tỉnh --</option>';
+            data.forEach(t => { optsTinh += `<option value="${t.id}">${t.ten}</option>`; });
+            $('#sel_Tinh').html(optsTinh);
+            // xuat_IDTinh: cho modal Xuất DS bản vẽ
+            $('#xuat_IDTinh').html('<option value="">-- Chọn tỉnh --</option>' +
+                data.map(t => `<option value="${t.id}">${t.ten}</option>`).join(''));
+        } catch (e) {
+            console.error('Lỗi tải tỉnh:', e);
+        }
+    }
+
+    // ============================================================
+    // MENU: LOAD TASK
+    // ============================================================
+        // ✅ Đổi thành async function, tách case XuLy và TiepNhan
+    async function loadTask(taskName, el) {
+        currentTask = taskName;
+        currentPage = 1;
+
+        $('#menuDoDac a').removeClass('active');
+        if (el) $(el).addClass('active');
+
+        const tieuDe = {
+            TiepNhan: 'Tiếp nhận hồ sơ',
+            XuLy:     'Hồ sơ đang xử lý',
+            TraCuu:   'Tra cứu hồ sơ',
+            BaoCao:   'Tổng hợp, báo cáo'
+        };
+        $('#lblTieuDeVung').text(tieuDe[taskName] || taskName);
+
+        switch (taskName) {
+            case 'XuLy':
+                await renderDanhSachHoSo(true);   // ✅ gọi đúng hàm cho tab Xử lý
+                break;
+
+            case 'TiepNhan':
+                try {
+                    const res = await fetch('/DoDac/FormTiepNhan');
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    $('#vungNoiDung').html(await res.text());
+                    await tn_Init();
+                } catch (e) {
+                    $('#vungNoiDung').html(
+                        `<div class="alert alert-danger m-3">Lỗi tải form tiếp nhận: ${e.message}</div>`
+                    );
+                }
+                break;
+
+            case 'TraCuu':
+                await renderTraCuu();
+                break;
+
+            case 'BaoCao':
+    try {
+        const res = await fetch('/DoDac/FormBaoCao');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        $('#vungNoiDung').html(await res.text());
+        await bc_Init();
+    } catch(e) {
+        $('#vungNoiDung').html(
+            `<div class="alert alert-danger m-3">Lỗi tải báo cáo: ${e.message}</div>`
+        );
+    }
+    break;
+        }
+    }
+
+    // ============================================================
+    // DANH SÁCH HỒ SƠ (XuLy / TiepNhan)
+    // ============================================================
+    async function renderDanhSachHoSo(onlyChuaKetThuc = true) {
+        showLoader('#vungNoiDung');
+        try {
+            const data = await apiGet(`/api/dodac/hosododac?onlyChuaKetThuc=${onlyChuaKetThuc}`);
+            if (!data) return;
+            allHoSoData = data;
+            renderBangHoSo(data);
+        } catch (e) {
+            $('#vungNoiDung').html('<div class="alert alert-danger m-3">Lỗi tải danh sách hồ sơ: ' + e.message + '</div>');
+        }
+    }
+
+    function renderBangHoSo(data) {
+        const pageSize   = parseInt($('#main_PageSize').val()) || 10;
+        const total      = data.length;
+        const totalPages = Math.ceil(total / pageSize);
+        const page       = Math.min(currentPage, totalPages || 1);
+        const paged      = data.slice((page - 1) * pageSize, page * pageSize);
+
+        let rows = '';
+        if (paged.length === 0) {
+            rows = '<tr><td colspan="4" class="text-center text-muted py-4">Không có hồ sơ nào</td></tr>';
+        } else {
+            paged.forEach(hs => {
+                // ── Thông tin hồ sơ ──────────────────────────────────
+                const colHoSo = `
+                    <b class="text-primary text-uppercase">${hs.nguoiDangKy || ''}</b><br>
+                    <span class="small"><i class="bi bi-hash"></i> HĐ: ${hs.soHopDong || ''}
+                        ${hs.ngayHopDong ? '(' + hs.ngayHopDong + ')' : ''}</span><br>
+                    <span class="small text-muted"><i class="bi bi-building"></i>
+                        ${hs.tenDonViCongTac || 'Chưa xác định'}</span><br>
+                    <span class="small text-muted"><i class="bi bi-geo-alt"></i>
+                        ${[hs.diaChiThuaDat, hs.tenXa, hs.tenTinh].filter(Boolean).join(', ')}</span>`;
+
+                // ── Quy trình & thời hạn ─────────────────────────────
+                const ngayGiao   = hs.ngayGiao   ? formatDisplayDate(hs.ngayGiao)   : '...';
+                const ngayYeuCau = hs.ngayYeuCau ? formatDisplayDate(hs.ngayYeuCau) : '...';
+                const colQuyTrinh = `
+                    <span class="badge bg-info text-dark mb-1">${hs.trangThaiDo || 'N/A'}</span><br>
+                    <span class="small">Ngày giao: ${ngayGiao}</span><br>
+                    <span class="small">Ngày hẹn: <b>${ngayYeuCau}</b></span>`;
+
+                // ── Thông tin xử lý ──────────────────────────────────
+                const badgeDo = hs.ngayDo
+                    ? `<span class="badge bg-success">Đã đo (${formatDisplayDate(hs.ngayDo)})</span>`
+                    : `<span class="badge bg-danger">Chưa đo</span>`;
+
+                let hanCuoi = '';
+                if (!hs.ngayTraKetQua) {
+                    if (hs.ngayYeuCau) {
+                        const diffDays = diffDay(hs.ngayYeuCau);
+                        hanCuoi = diffDays < 0
+                            ? `<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Quá hạn: ${Math.abs(diffDays)} ngày</span>`
+                            : `<span class="text-success small">Còn ${diffDays} ngày</span>`;
+                    }
+                    hanCuoi += `<br><span class="text-muted small">Chưa trả KQ</span>`;
+                } else {
+                    hanCuoi = `<span class="badge bg-secondary">Hoàn thành (${formatDisplayDate(hs.ngayTraKetQua)})</span>`;
+                }
+
+                const colXuLy = `
+                    <span class="small"><i class="bi bi-person-circle"></i>
+                        ${hs.tenNguoiXuLy || 'Chưa phân công'}</span><br>
+                    <div class="mt-1">${badgeDo}</div>
+                    <div class="mt-1">${hanCuoi}</div>`;
+
+                // ── Thao tác ─────────────────────────────────────────
+                // FIX: dùng idTaiKhoan (đúng tên field trong HoSoDoDacDto)
+                const isOwner      = hs.idTaiKhoan === SESSION_USER_ID;
+                const isNotFinished = hs.trangThaiDo !== 'KetThuc';
+                const canEdit      = isOwner && isNotFinished;
+
+                const btnXuLy = canEdit
+                    ? `<button class="btn btn-xs btn-outline-primary mb-1" onclick="openXuLy(${hs.id})" title="Xử lý hồ sơ">
+                           <i class="bi bi-pencil-square"></i> Xử lý hồ sơ
+                       </button>`
+                    : `<span class="badge bg-light text-muted border mb-1" style="font-size:.7rem;">
+                           <i class="bi bi-lock-fill"></i> Đã khóa/Không có quyền
+                       </span>`;
+
+                const colThaotac = `
+                    <div class="d-grid gap-1">
+                        ${btnXuLy}
+                        <button class="btn btn-xs btn-outline-secondary mb-1" onclick="openHoSoQuet(${hs.id})" title="File đính kèm">
+                            <i class="bi bi-file-earmark-pdf"></i> File đính kèm
+                        </button>
+                        <button class="btn btn-xs btn-outline-info mb-1" onclick="openLichSu(${hs.id})" title="Lịch sử">
+                            <i class="bi bi-clock-history"></i> Lịch sử
+                        </button>
+                        <button class="btn btn-xs btn-outline-success mb-1" onclick="openBanVeModal(${hs.id})" title="Bản vẽ">
+                            <i class="bi bi-map"></i> Bản vẽ
+                        </button>
+                        <button class="btn btn-xs btn-outline-warning" onclick="moModalThanhLy(${hs.id})" title="Tạo văn bản Word">
+                            <i class="bi bi-file-word"></i> Tạo Văn bản (Word)
+                        </button>
+                    </div>`;
+
+                rows += `
+                <tr>
+                    <td style="width:25%">${colHoSo}</td>
+                    <td style="width:20%">${colQuyTrinh}</td>
+                    <td style="width:25%">${colXuLy}</td>
+                    <td style="width:30%">${colThaotac}</td>
+                </tr>`;
+            });
+        }
+
+        // ── Phân trang ───────────────────────────────────────────────
+        let pagination = '';
+        if (totalPages > 1) {
+            const maxBtn = 5;
+            const half   = Math.floor(maxBtn / 2);
+            let start    = Math.max(1, page - half);
+            let end      = Math.min(totalPages, start + maxBtn - 1);
+            if (end - start < maxBtn - 1) start = Math.max(1, end - maxBtn + 1);
+
+            let btns = '';
+            if (start > 1) btns += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="goPage(1)">1</a></li>
+                                     <li class="page-item disabled"><span class="page-link">…</span></li>`;
+            for (let p = start; p <= end; p++) {
+                btns += `<li class="page-item ${p === page ? 'active' : ''}">
+                            <a class="page-link" href="javascript:void(0)" onclick="goPage(${p})">${p}</a></li>`;
+            }
+            if (end < totalPages) btns += `<li class="page-item disabled"><span class="page-link">…</span></li>
+                                            <li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="goPage(${totalPages})">${totalPages}</a></li>`;
+
+            pagination = `
+            <div class="card-footer bg-white border-top py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="small text-muted">
+                        Hiển thị <b>${paged.length}</b> / <b>${total}</b> hồ sơ
+                        (Trang <b>${page}</b>/<b>${totalPages}</b>)
+                    </span>
+                    <nav><ul class="pagination pagination-sm mb-0">
+                        <li class="page-item ${page <= 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="javascript:void(0)" onclick="goPage(${page - 1})">‹</a></li>
+                        ${btns}
+                        <li class="page-item ${page >= totalPages ? 'disabled' : ''}">
+                            <a class="page-link" href="javascript:void(0)" onclick="goPage(${page + 1})">›</a></li>
+                    </ul></nav>
+                </div>
+            </div>`;
+        }
+
+        $('#vungNoiDung').html(`
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size:.85rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:25%">Thông tin hồ sơ</th>
+                            <th style="width:20%">Quy trình & Thời hạn</th>
+                            <th style="width:25%">Thông tin xử lý</th>
+                            <th style="width:30%">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableHoSoBody">${rows}</tbody>
+                </table>
+            </div>
+            ${pagination}
+        `);
+    }
+
+    // ── Helpers ngày tháng ───────────────────────────────────────────
+    function formatDisplayDate(val) {
+        // Nhận DateOnly kiểu "2024-01-21", ISO "2024-01-21T..." hoặc "21/01/2024" → "21/01/2024"
+        if (!val) return '';
+        const s = String(val);
+        if (s.includes('/')) return s;
+        const date = s.split('T')[0]; // "2024-01-21"
+        const [y, m, d] = date.split('-');
+        return `${d}/${m}/${y}`;
+    }
+
+    function diffDay(val) {
+        // val có thể là DateOnly "2024-01-21" hoặc ISO string
+        const s = String(val).split('T')[0];
+        const target = new Date(s);
+        const today  = new Date(); today.setHours(0, 0, 0, 0);
+        return Math.round((target - today) / 86400000);
+    }
+
+    function goPage(p) {
+        currentPage = p;
+        renderBangHoSo(allHoSoData);
+    }
+
+       /* function changeMainPageSize(step) {
+        var input = $('#main_PageSize');
+        var val   = parseInt(input.val()) + step;
+        if (val < 5) val = 5;
+        input.val(val);
+        currentPage = 1;
+        // ✅ Gọi thẳng renderBangHoSo nếu có data
+        if (allHoSoData.length > 0) {
+            renderBangHoSo(allHoSoData);
+        }
+    }*/
+        var allTraCuuData  = [];
+    var currentTraCuuPage = 1;
+        function changeMainPageSize(step) {
+        var input = $('#main_PageSize');
+        var val   = parseInt(input.val()) + step;
+        if (val < 5) val = 5;
+        input.val(val);
+        currentPage = 1;
+
+        if (currentTask === 'XuLy' || currentTask === 'TiepNhan') {
+            if (allHoSoData.length > 0) renderBangHoSo(allHoSoData);
+        } else if (currentTask === 'TraCuu') {
+            currentTraCuuPage = 1;
+            if (allTraCuuData.length > 0) renderBangTraCuu(allTraCuuData);
+        }
+    }
+
+   /* function searchHoSo() {
+        filterTable($('#txtSearch').val().toLowerCase());
+    }
+
+    // FIX: đổi tenChuDat → nguoiDangKy cho đúng HoSoDoDacDto
+    function filterTable(value) {
+        if (!value) { renderBangHoSo(allHoSoData); return; }
+        const filtered = allHoSoData.filter(hs =>
+            (hs.soHopDong   || '').toLowerCase().includes(value) ||
+            (hs.nguoiDangKy || '').toLowerCase().includes(value) ||
+            (hs.tenXa       || '').toLowerCase().includes(value)
+        );
+        renderBangHoSo(filtered);
+    }*/
+        function searchHoSo() {
+        if (currentTask !== 'XuLy') return;
+        filterTable($('#txtSearch').val().toLowerCase());
+    }
+
+    function filterTable(value) {
+        if (currentTask !== 'XuLy') return;
+        if (!value) { renderBangHoSo(allHoSoData); return; }
+        const filtered = allHoSoData.filter(hs =>
+            (hs.soHopDong   || '').toLowerCase().includes(value) ||
+            (hs.nguoiDangKy || '').toLowerCase().includes(value) ||
+            (hs.tenXa       || '').toLowerCase().includes(value)
+        );
+        renderBangHoSo(filtered);
+    }
+
+    // ============================================================
+    // MỞ MODAL XỬ LÝ HỒ SƠ → render JS (sẽ hoàn thiện khi có Partial)
+    // ============================================================
+        // Index.cshtml - openXuLy() gọi endpoint trả về Partial HTML:
+        async function openXuLy(id) {
+        currentHoSoId = id;
+        $('#modalXuLy').modal('show');
+        showLoader('#contentXuLy');
+        try {
+            const res = await fetch(`/DoDac/FormXuLy`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            $('#contentXuLy').html(await res.text());
+            // Gọi hàm init của Partial sau khi HTML đã render
+            await fxl_Init(id);
+        } catch (e) {
+            $('#contentXuLy').html(
+                `<div class="alert alert-danger m-3">Lỗi tải form: ${e.message}</div>`
+            );
+        }
+    }
+
+    // ============================================================
+    // LỊCH SỬ HỒ SƠ → GET /api/dodac/hosododac/{id}/lichsu
+    // ============================================================
+        async function openLichSu(id) {
+        $('#modalLichSu').modal('show');
+        showLoader('#contentLichSu');
+        try {
+            const data = await apiGet(`/api/dodac/hosododac/${id}/lichsu`);
+            if (!data) return;
+
+            if (data.length === 0) {
+                $('#contentLichSu').html('<p class="text-center text-muted p-4">Chưa có lịch sử xử lý.</p>');
+                return;
+            }
+
+                const rows = data.map(item => {
+        let thoiGian = '';
+        if (item.timestamp) {
+            const dt = new Date(item.timestamp);
+            thoiGian = `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+        }
+        return `
+        <tr>
+            <td>${thoiGian}</td>
+            <td>${item.details || ''}</td>
+            <td>${item.tenCanBo || ''}</td>
+            <td></td>
+        </tr>`;
+    }).join('');
+
+            $('#contentLichSu').html(`
+                <table class="table table-sm table-striped mb-0">
+                    <thead class="table-light">
+                        <tr><th>Thời gian</th><th>Nội dung</th><th>User ID</th></tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>`);
+        } catch (e) {
+            $('#contentLichSu').html('<div class="alert alert-danger m-3">Lỗi tải lịch sử: ' + e.message + '</div>');
+        }
+    }
+
+    // ============================================================
+    // FILE ĐÍNH KÈM → render JS (sẽ hoàn thiện khi có _PartialHSQuet)
+    // ============================================================
+    async function openHoSoQuet(id) {
+        currentHoSoId = id;
+        $('#modalHSQuet').modal('show');
+        await renderHSQuet(id);
+    }
+
+    async function renderHSQuet(idHoSo) {
+        showLoader('#contentHSQuet');
+        try {
+            const data = await apiGet(`/api/dodac/FileQuet/by-hoso/${idHoSo}`);
+            if (!data) return;
+
+            let rows = '';
+            if (data.length === 0) {
+                rows = '<tr><td colspan="3" class="text-center text-muted py-3">Chưa có file đính kèm</td></tr>';
+            } else {
+                rows = data.map(f => `
+                    <tr>
+                        <td>${f.tenFileLuu || ''}</td>
+                        <td>${f.noiDungSoBo || ''}</td>
+                        <td class="text-center">
+                            <a href="/api/dodac/FileQuet/view/${f.id}" target="_blank"
+                               class="btn btn-xs btn-outline-primary me-1">
+                                <i class="bi bi-eye"></i> Xem
+                            </a>
+                            <button class="btn btn-xs btn-outline-danger" onclick="xoaFileQuet(${f.id}, ${idHoSo})">
+                                <i class="bi bi-trash"></i> Xóa
+                            </button>
+                        </td>
+                    </tr>`).join('');
+            }
+
+            $('#contentHSQuet').html(`
+                <div class="p-3">
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr><th>Tên file</th><th>Nội dung</th><th class="text-center" style="width:130px">Thao tác</th></tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                    <hr>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="small fw-bold">Nội dung sơ bộ</label>
+                            <input type="text" id="fq_NoiDung" class="form-control form-control-sm" placeholder="Ghi chú file...">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="small fw-bold">Chọn file</label>
+                            <input type="file" id="fq_File" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button class="btn btn-primary btn-sm w-100" onclick="uploadFileQuet(${idHoSo})">
+                                <i class="bi bi-upload"></i> Tải lên
+                            </button>
+                        </div>
+                    </div>
+                </div>`);
+        } catch (e) {
+            $('#contentHSQuet').html('<div class="alert alert-danger m-3">Lỗi tải file đính kèm: ' + e.message + '</div>');
+        }
+    }
+
+    async function uploadFileQuet(idHoSo) {
+        const fileInput = document.getElementById('fq_File');
+        if (!fileInput.files.length) { alert('Vui lòng chọn file!'); return; }
+
+        const formData = new FormData();
+        formData.append('idHoSo', idHoSo);
+        formData.append('noiDung', $('#fq_NoiDung').val() || '');
+        formData.append('file', fileInput.files[0]);
+
+        try {
+            const res = await fetch('/api/dodac/FileQuet/upload', { method: 'POST', body: formData });
+            const json = await res.json();
+            if (json.success) {
+                await renderHSQuet(idHoSo);
+            } else {
+                alert('Lỗi upload: ' + (json.message || 'Không xác định'));
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    }
+
+    async function xoaFileQuet(id, idHoSo) {
+        if (!confirm('Bạn có chắc muốn xóa file này không?')) return;
+        try {
+            const json = await apiDelete(`/api/dodac/FileQuet/${id}`);
+            if (json && json.success) {
+                await renderHSQuet(idHoSo);
+            } else {
+                alert('Không xóa được: ' + (json?.message || ''));
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    }
+
+    // ============================================================
+    // BẢN VẼ → render JS (sẽ hoàn thiện khi có _PartialBanVe)
+    // ============================================================
+
+        async function openBanVeModal(idDangKyDoDac) {
+        currentHoSoId = idDangKyDoDac;
+        $('#modalBanVe').modal('show');
+        $('#modalBanVeContent').html(`
+            <div class="p-5 text-center">
+                <div class="spinner-border text-primary"></div>
+                <p class="mt-2">Đang tải...</p>
+            </div>`);
+        try {
+            const res = await fetch('/DoDac/FormBanVe');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            $('#modalBanVeContent').html(await res.text());
+            await fxbv_Init(idDangKyDoDac);
+        } catch (e) {
+            $('#modalBanVeContent').html(
+                `<div class="alert alert-danger m-3">Lỗi tải form bản vẽ: ${e.message}</div>`);
+        }
+    }
+    
+
+    // ============================================================
+    // SỔ MẢNH / SỐ HIỆU → POST /api/dodac/somanh/create
+    // ============================================================
+        function moModalXinSo() {
+        const $selXa = $('#bv_IDXa');
+        const idXa   = $selXa.val();
+        const tenXa  = $selXa.find('option:selected').text();
+        // ĐỌC maXa từ data attribute (đã lưu lúc render option)
+        const maXa   = $selXa.find('option:selected').data('maxa');
+
+        if (!idXa) { alert('Vui lòng chọn Xã/Phường trước!'); return; }
+        if (!maXa) { alert('Không tìm thấy mã xã. Vui lòng chọn lại!'); return; }
+
+        $('#sh_TenXa_Display').val(tenXa);
+        // Lưu maXa thật sự (string) vào hidden field
+        $('#sh_MaXa_Hidden').val(maXa);
+        $('#sh_Nam').val(new Date().getFullYear());
+        $('#resultArea').addClass('d-none');
+        new bootstrap.Modal(document.getElementById('modalSoManh')).show();
+    }
+
+        async function thucThiXinSo() {
+        const maXa = $('#sh_MaXa_Hidden').val();
+        const nam  = parseInt($('#sh_Nam').val());
+
+        if (!maXa) { alert('Không có mã xã. Vui lòng đóng và chọn lại!'); return; }
+        if (!nam)  { alert('Vui lòng nhập năm đo đạc!'); return; }
+
+        try {
+            const res = await apiPost('/api/dodac/somanh/create', { maXa, nam });
+            if (res && res.success === true) {
+                // Service trả { success: true, soMoi: number }
+                const soMoi = res.soMoi;
+                $('#txtSoHieuMoi').text(soMoi ?? '---');
+                $('#resultArea').removeClass('d-none');
+                if (soMoi) {
+                    // Gán vào đúng field — bv2_SoHieuBanVe hoặc bv_SoHieuBanVe
+                    const target = window._bv2_SoHieuTarget || '#bv_SoHieuBanVe';
+                    $(target).val(soMoi);
+                    window._bv2_SoHieuTarget = null;
+                    alert('Số hiệu vừa xin được là: ' + soMoi);
+                }
+            } else {
+                alert('Lỗi: ' + (res?.message || 'Không xác định'));
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    }
+
+    function moModalQuanLySoHieu() {
+        new bootstrap.Modal(document.getElementById('modalQuanLySoHieu')).show();
+        // Nếu đang mở bản vẽ, pre-select tỉnh
+        const idTinhHienTai = $('#bv_IDTinh').val();
+        if (idTinhHienTai) {
+            $('#sel_Tinh').val(idTinhHienTai);
+            loadSoHieuMax();
+        }
+    }
+
+    async function loadSoHieuMax() {
+        const idTinh = $('#sel_Tinh').val();
+        const nam    = $('#sel_Nam').val();
+        if (!idTinh) { alert('Vui lòng chọn Tỉnh!'); return; }
+
+        const tbody = $('#tbodySoHieuMax');
+        tbody.html('<tr><td colspan="4" class="text-center"><div class="spinner-border spinner-border-sm text-primary"></div> Đang tra cứu...</td></tr>');
+
+        try {
+            // GET /api/dodac/somanh/sohieu-max?idTinh=&nam= → { success, data: SoHieuMaxDto[] }
+            const res = await apiGet(`/api/dodac/somanh/sohieu-max?idTinh=${idTinh}&nam=${nam}`);
+            if (!res || !res.success) { alert('Lỗi: ' + (res?.message || '')); return; }
+
+            if (!res.data || res.data.length === 0) {
+                tbody.html('<tr><td colspan="4" class="text-center text-muted">Không tìm thấy dữ liệu</td></tr>');
+                return;
+            }
+            tbody.html(res.data.map(item => `
+                <tr>
+                    <td class="fw-bold">${item.maXa}</td>
+                    <td>${item.tenXa}</td>
+                    <td class="text-center">
+                        <span class="badge ${item.soHieuMax > 0 ? 'bg-danger' : 'bg-secondary'}">${item.soHieuMax}</span>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-outline-info btn-sm" onclick="xemChiTietSoHieu('${item.maXa}', '${item.tenXa}')">
+                            <i class="bi bi-eye"></i> Xem
+                        </button>
+                    </td>
+                </tr>`).join(''));
+        } catch (e) {
+            tbody.html('<tr><td colspan="4" class="text-center text-danger">Lỗi: ' + e.message + '</td></tr>');
+        }
+    }
+
+    async function xemChiTietSoHieu(maXa, tenXa) {
+        const nam = $('#sel_Nam').val();
+        $('#lblTenXa').text(`${tenXa} (${nam})`);
+
+        const tbody = $('#tbodyChiTietSoHieu');
+        tbody.html('<tr><td colspan="4" class="text-center">Đang tải...</td></tr>');
+        new bootstrap.Modal(document.getElementById('modalChiTietSoHieu')).show();
+
+        try {
+            // GET /api/dodac/somanh/lichsu?maXa=&nam= → LichSuCapSoDto[]
+            const res = await apiGet(`/api/dodac/somanh/lichsu?maXa=${maXa}&nam=${nam}`);
+            if (!res || res.length === 0) {
+                tbody.html('<tr><td colspan="4" class="text-center text-muted">Chưa có lịch sử</td></tr>');
+                return;
+            }
+            // FIX: dùng đúng field từ LichSuCapSoDto { shBanVe, ngayLay, tenCanBo, tenDonVi }
+            tbody.html(res.map(item => `
+                <tr>
+                    <td class="text-center fw-bold text-danger">${item.shBanVe ?? ''}</td>
+                    <td>${item.tenCanBo ?? ''}</td>
+                    <td class="small">${item.ten ?? ''}</td>
+                    <td class="text-muted">${item.ngayLay ?? ''}</td>
+                </tr>`).join(''));
+        } catch (e) {
+            tbody.html('<tr><td colspan="4" class="text-danger">Lỗi: ' + e.message + '</td></tr>');
+        }
+    }
+
+    // ============================================================
+    // TRA CỨU → POST /api/dodac/baocao/chitiet
+    // ============================================================
+    async function renderTraCuu() {
+        showLoader('#vungNoiDung');
+        try {
+            const dsDonVi = await apiGet('/api/dodac/dropdown/all-donvi');
+            let optsDonVi = '<option value="0">-- Tất cả đơn vị --</option>';
+            (dsDonVi || []).forEach(d => { optsDonVi += `<option value="${d.id}">${d.ten}</option>`; });
+
+            const now = new Date();
+            const tuNgayDef  = `01/01/${now.getFullYear()}`;
+            const denNgayDef = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+
+            $('#vungNoiDung').html(`
+                <div class="p-3">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <input type="text" id="tc_TuKhoa" class="form-control"
+                                placeholder="Tên người đăng ký, số HĐ...">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="text" id="tc_TuNgay" class="form-control"
+                                placeholder="Từ ngày" value="${tuNgayDef}">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="text" id="tc_DenNgay" class="form-control"
+                                placeholder="Đến ngày" value="${denNgayDef}">
+                        </div>
+                        <div class="col-md-3">
+                            <select id="tc_IDDonVi" class="form-select">${optsDonVi}</select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary w-100" onclick="thucHienTraCuu()">
+                                <i class="bi bi-search"></i> Tìm kiếm
+                            </button>
+                        </div>
+                    </div>
+                    <div id="vungKetQuaTraCuu">
+                        <p class="text-center text-muted">Nhập điều kiện và nhấn Tìm kiếm</p>
+                    </div>
+                </div>`);
+        } catch (e) {
+            $('#vungNoiDung').html('<div class="alert alert-danger m-3">Lỗi khởi tạo tra cứu: ' + e.message + '</div>');
+        }
+    }
+
+ /*   async function thucHienTraCuu() {
+        showLoader('#vungKetQuaTraCuu');
+        // FIX: BaoCaoRequestDto chỉ có { idTinh, idDonVi, tuNgay, denNgay }
+        // Không có tuKhoa/nam — dùng khoảng thời gian rộng, filter kết quả phía client
+        const tuKhoa  = ($('#tc_TuKhoa').val() || '').toLowerCase();
+        const idDonVi = parseInt($('#tc_IDDonVi').val()) || 0;
+        const body = {
+            idDonVi: idDonVi || null,
+            tuNgay:  $('#tc_TuNgay').val() || '01/01/2020',
+            denNgay: $('#tc_DenNgay').val() || `31/12/${new Date().getFullYear()}`
+        };
+
+        try {
+            // POST /api/dodac/baocao/chitiet
+            let data = await apiPost('/api/dodac/baocao/chitiet', body);
+            if (!data) return;
+
+            // Filter phía client theo từ khóa nếu có
+            if (tuKhoa) {
+                data = data.filter(hs =>
+                    (hs.soHopDong   || '').toLowerCase().includes(tuKhoa) ||
+                    (hs.nguoiDangKy || '').toLowerCase().includes(tuKhoa) ||
+                    (hs.tenXa       || '').toLowerCase().includes(tuKhoa)
+                );
+            }
+
+            if (data.length === 0) {
+                $('#vungKetQuaTraCuu').html('<p class="text-center text-muted">Không tìm thấy kết quả.</p>');
+                return;
+            }
+
+                const rows = data.map((hs, i) => `
+        <tr>
+            <td>${i + 1}</td>
+            <td class="fw-bold text-primary">${hs.soHopDong || ''}</td>
+            <td>${hs.nguoiDangKy || ''}</td>
+            <td>${hs.ngayHopDong ? formatDisplayDate(hs.ngayHopDong) : ''}</td>
+            <td>${hs.diaChiThuaDat || ''}</td>
+            <td>${hs.tenXa || ''}</td>
+            <td>${hs.tenDonViCongTac || ''}</td>
+            <td><span class="badge bg-secondary">${hs.trangThaiDo || ''}</span></td>
+            <td>${hs.tenNguoiXuLy || '---'}</td>
+            <td>${hs.ngayYeuCau ? formatDisplayDate(hs.ngayYeuCau) : ''}</td>
+            <td>${hs.ngayDo ? formatDisplayDate(hs.ngayDo) : ''}</td>
+            <td>${hs.ngayTraKetQua ? formatDisplayDate(hs.ngayTraKetQua) : ''}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-primary" onclick="openXuLy(${hs.id})" title="Xem & chỉnh sửa">
+                    <i class="bi bi-pencil-square"></i>
+                </button>
+            </td>
+        </tr>`).join('');
+
+    // Header cũng cập nhật lại
+    $('#vungKetQuaTraCuu').html(`
+        <div class="table-responsive">
+            <table class="table table-sm table-hover table-bordered" style="font-size:.82rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Số HĐ</th>
+                        <th>Chủ sử dụng</th>
+                        <th>Ngày ĐK</th>
+                        <th>Địa chỉ</th>
+                        <th>Xã/Phường</th>
+                        <th>Đơn vị</th>
+                        <th>Trạng thái</th>
+                        <th>Người GQ</th>
+                        <th>Ngày hẹn</th>
+                        <th>Ngày đo</th>
+                        <th>Ngày trả KQ</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>`);
+
+            $('#vungKetQuaTraCuu').html(`
+    <div class="table-responsive">
+        <table class="table table-sm table-hover table-bordered" style="font-size:.82rem;">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Số HĐ</th>
+                    <th>Chủ sử dụng</th>
+                    <th>Ngày ĐK</th>
+                    <th>Địa chỉ</th>
+                    <th>Xã/Phường</th>
+                    <th>Đơn vị</th>
+                    <th>Trạng thái</th>
+                    <th>Người GQ</th>
+                    <th>Ngày hẹn</th>
+                    <th>Ngày đo</th>
+                    <th>Ngày trả KQ</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+        </table>
+    </div>`);
+        } catch (e) {
+            $('#vungKetQuaTraCuu').html('<div class="alert alert-danger">Lỗi tìm kiếm: ' + e.message + '</div>');
+        }
+    }*/
+
+        async function thucHienTraCuu() {
+        showLoader('#vungKetQuaTraCuu');
+        const tuKhoa  = ($('#tc_TuKhoa').val() || '').toLowerCase();
+        const idDonVi = parseInt($('#tc_IDDonVi').val()) || 0;
+        const body = {
+            idDonVi: idDonVi || null,
+            tuNgay:  $('#tc_TuNgay').val() || '01/01/2020',
+            denNgay: $('#tc_DenNgay').val() || `31/12/${new Date().getFullYear()}`
+        };
+
+        try {
+            let data = await apiPost('/api/dodac/baocao/chitiet', body);
+            if (!data) return;
+
+            if (tuKhoa) {
+                data = data.filter(hs =>
+                    (hs.soHopDong   || '').toLowerCase().includes(tuKhoa) ||
+                    (hs.nguoiDangKy || '').toLowerCase().includes(tuKhoa) ||
+                    (hs.tenXa       || '').toLowerCase().includes(tuKhoa)
+                );
+            }
+
+            allTraCuuData     = data;   // ← lưu riêng
+            currentTraCuuPage = 1;
+            renderBangTraCuu(allTraCuuData);
+        } catch (e) {
+            $('#vungKetQuaTraCuu').html('<div class="alert alert-danger">Lỗi tìm kiếm: ' + e.message + '</div>');
+        }
+    }
+
+        // HÀM MỚI: renderBangTraCuu — phân trang riêng cho Tra cứu
+    // ============================================================
+    function renderBangTraCuu(data) {
+        const pageSize   = parseInt($('#main_PageSize').val()) || 10;
+        const total      = data.length;
+        const totalPages = Math.ceil(total / pageSize);
+        const page       = Math.min(currentTraCuuPage, totalPages || 1);
+        const paged      = data.slice((page - 1) * pageSize, page * pageSize);
+
+        if (total === 0) {
+            $('#vungKetQuaTraCuu').html('<p class="text-center text-muted">Không tìm thấy kết quả.</p>');
+            return;
+        }
+
+        const rows = paged.map((hs, i) => `
+            <tr>
+                <td>${(page - 1) * pageSize + i + 1}</td>
+                <td class="fw-bold text-primary">${hs.soHopDong || ''}</td>
+                <td>${hs.nguoiDangKy || ''}</td>
+                <td>${hs.ngayHopDong ? formatDisplayDate(hs.ngayHopDong) : ''}</td>
+                <td>${hs.diaChiThuaDat || ''}</td>
+                <td>${hs.tenXa || ''}</td>
+                <td>${hs.tenDonViCongTac || ''}</td>
+                <td><span class="badge bg-secondary">${hs.trangThaiDo || ''}</span></td>
+                <td>${hs.tenNguoiXuLy || '---'}</td>
+                <td>${hs.ngayYeuCau ? formatDisplayDate(hs.ngayYeuCau) : ''}</td>
+                <td>${hs.ngayDo ? formatDisplayDate(hs.ngayDo) : ''}</td>
+                <td>${hs.ngayTraKetQua ? formatDisplayDate(hs.ngayTraKetQua) : ''}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-primary" onclick="openXuLy(${hs.id})">
+                        <i class="bi bi-pencil-square"></i>
+                    </button>
+                </td>
+            </tr>`).join('');
+
+        // ── Phân trang ──────────────────────────────────────────────
+        let pagination = '';
+        if (totalPages > 1) {
+            const maxBtn = 5, half = Math.floor(maxBtn / 2);
+            let start = Math.max(1, page - half);
+            let end   = Math.min(totalPages, start + maxBtn - 1);
+            if (end - start < maxBtn - 1) start = Math.max(1, end - maxBtn + 1);
+
+            let btns = '';
+            if (start > 1) btns += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="goTraCuuPage(1)">1</a></li>
+                                     <li class="page-item disabled"><span class="page-link">…</span></li>`;
+            for (let p = start; p <= end; p++) {
+                btns += `<li class="page-item ${p === page ? 'active' : ''}">
+                            <a class="page-link" href="javascript:void(0)" onclick="goTraCuuPage(${p})">${p}</a></li>`;
+            }
+            if (end < totalPages) btns += `<li class="page-item disabled"><span class="page-link">…</span></li>
+                                            <li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="goTraCuuPage(${totalPages})">${totalPages}</a></li>`;
+
+            pagination = `
+            <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+                <span class="small text-muted">
+                    Hiển thị <b>${paged.length}</b> / <b>${total}</b> hồ sơ
+                    (Trang <b>${page}</b>/<b>${totalPages}</b>)
+                </span>
+                <nav><ul class="pagination pagination-sm mb-0">
+                    <li class="page-item ${page <= 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="javascript:void(0)" onclick="goTraCuuPage(${page - 1})">‹</a></li>
+                    ${btns}
+                    <li class="page-item ${page >= totalPages ? 'disabled' : ''}">
+                        <a class="page-link" href="javascript:void(0)" onclick="goTraCuuPage(${page + 1})">›</a></li>
+                </ul></nav>
+            </div>`;
+        }
+
+        $('#vungKetQuaTraCuu').html(`
+            <div class="table-responsive">
+                <table class="table table-sm table-hover table-bordered" style="font-size:.82rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th><th>Số HĐ</th><th>Chủ sử dụng</th><th>Ngày ĐK</th>
+                            <th>Địa chỉ</th><th>Xã/Phường</th><th>Đơn vị</th><th>Trạng thái</th>
+                            <th>Người GQ</th><th>Ngày hẹn</th><th>Ngày đo</th><th>Ngày trả KQ</th><th></th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+            ${pagination}
+        `);
+    }
+
+    // Hàm chuyển trang riêng cho Tra cứu
+    function goTraCuuPage(p) {
+        currentTraCuuPage = p;
+        renderBangTraCuu(allTraCuuData);
+    }
+    // ============================================================
+    // BÁO CÁO / TỔNG HỢP → POST /api/dodac/baocao/thongke
+    // ============================================================
+    async function renderBaoCao() {
+        showLoader('#vungNoiDung');
+        try {
+            const [dsTinh, dsDonVi] = await Promise.all([
+                apiGet('/api/dodac/dropdown/all-tinh'),
+                apiGet('/api/dodac/dropdown/all-donvi')
+            ]);
+
+            const optsTinh  = '<option value="">-- Tất cả tỉnh --</option>' +
+                (dsTinh  || []).map(t => `<option value="${t.id}">${t.ten}</option>`).join('');
+            const optsDonVi = '<option value="0">-- Tất cả đơn vị --</option>' +
+                (dsDonVi || []).map(d => `<option value="${d.id}">${d.ten}</option>`).join('');
+
+            const now = new Date();
+            const tuNgayDef  = `01/01/${now.getFullYear()}`;
+            const denNgayDef = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+
+            $('#vungNoiDung').html(`
+                <div class="p-3">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-2">
+                            <input type="text" id="bc_TuNgay" class="form-control form-control-sm"
+                                placeholder="Từ ngày" value="${tuNgayDef}">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="text" id="bc_DenNgay" class="form-control form-control-sm"
+                                placeholder="Đến ngày" value="${denNgayDef}">
+                        </div>
+                        <div class="col-md-3">
+                            <select id="bc_IDTinh" class="form-select form-select-sm">${optsTinh}</select>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="bc_IDDonVi" class="form-select form-select-sm">${optsDonVi}</select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary btn-sm w-100" onclick="thucHienTongHop()">
+                                <i class="bi bi-bar-chart"></i> Tổng hợp
+                            </button>
+                        </div>
+                    </div>
+                    <div id="vungKetQuaBaoCao">
+                        <p class="text-center text-muted">Chọn khoảng thời gian và nhấn Tổng hợp</p>
+                    </div>
+                </div>`);
+        } catch (e) {
+            $('#vungNoiDung').html('<div class="alert alert-danger m-3">Lỗi khởi tạo báo cáo: ' + e.message + '</div>');
+        }
+    }
+
+    async function thucHienTongHop() {
+        const tuNgay  = $('#bc_TuNgay').val();
+        const denNgay = $('#bc_DenNgay').val();
+        if (!tuNgay || !denNgay) { alert('Vui lòng nhập khoảng thời gian!'); return; }
+
+        // FIX: BaoCaoRequestDto nhận dd/MM/yyyy trực tiếp, không cần convert ISO
+        const body = {
+            tuNgay,
+            denNgay,
+            idTinh:  parseInt($('#bc_IDTinh').val())  || null,
+            idDonVi: parseInt($('#bc_IDDonVi').val()) || null
+        };
+
+        showLoader('#vungKetQuaBaoCao');
+        try {
+            // POST /api/dodac/baocao/thongke → trả về object có các mảng ThongKe*Dto
+            const res = await apiPost('/api/dodac/baocao/thongke', body);
+            if (!res) return;
+            $('#vungKetQuaBaoCao').html(renderThongKe(res));
+        } catch (e) {
+            $('#vungKetQuaBaoCao').html('<div class="alert alert-danger">Lỗi tổng hợp: ' + e.message + '</div>');
+        }
+    }
+
+    function renderThongKe(data) {
+        // API trả về object gồm các mảng: trangThai[], canBo[], banVe[]
+        // Tương ứng ThongKeTrangThaiDto, ThongKeCanBoDto, ThongKeBanVeDto
+        let html = '';
+
+        // ── Thống kê theo trạng thái ─────────────────────────────
+        if (data.trangThai && data.trangThai.length > 0) {
+            html += `<h6 class="fw-bold text-muted mb-2">THEO TRẠNG THÁI HỒ SƠ</h6>
+                <div class="row g-2 mb-4">`;
+            data.trangThai.forEach(tt => {
+                html += `
+                <div class="col-md-3 col-6">
+                    <div class="card border-0 shadow-sm text-center p-2"
+                        style="border-left: 4px solid ${tt.mauSac || '#6c757d'} !important;">
+                        <div class="h4 fw-bold mb-0" style="color:${tt.mauSac || '#6c757d'}">${tt.soLuong}</div>
+                        <div class="small text-muted">${tt.tenTrangThai}</div>
+                        <div class="mt-1" style="font-size:.75rem;">
+                            <span class="text-success">Còn hạn: ${tt.conHan}</span> |
+                            <span class="text-danger">Quá hạn: ${tt.quaHan}</span>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+        }
+
+        // ── Thống kê theo cán bộ ──────────────────────────────────
+        if (data.canBo && data.canBo.length > 0) {
+            html += `<h6 class="fw-bold text-muted mb-2">THEO CÁN BỘ XỬ LÝ</h6>
+                <div class="table-responsive mb-4">
+                <table class="table table-sm table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr><th>Cán bộ</th>
+                            <th class="text-center">Tổng</th>
+                            <th class="text-center">Đã xong</th>
+                            <th class="text-center">Đang làm</th>
+                            <th class="text-center text-danger">Quá hạn</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            data.canBo.forEach(cb => {
+                html += `<tr>
+                    <td>${cb.tenCanBo}</td>
+                    <td class="text-center fw-bold">${cb.tong}</td>
+                    <td class="text-center text-success">${cb.daXong}</td>
+                    <td class="text-center text-primary">${cb.dangLam}</td>
+                    <td class="text-center text-danger">${cb.quaHan}</td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+        }
+
+        // ── Thống kê theo loại bản vẽ ─────────────────────────────
+        if (data.banVe && data.banVe.length > 0) {
+            html += `<h6 class="fw-bold text-muted mb-2">THEO LOẠI BẢN VẼ</h6>
+                <div class="table-responsive">
+                <table class="table table-sm table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr><th>Loại bản vẽ</th><th class="text-center">Tổng số</th><th>Chi tiết trạng thái</th></tr>
+                    </thead>
+                    <tbody>`;
+            data.banVe.forEach(bv => {
+                const chiTiet = (bv.chiTietTrangThai || [])
+                    .map(ct => `<span class="badge bg-light text-dark border me-1">${ct.tenTrangThai}: ${ct.soLuong}</span>`)
+                    .join('');
+                html += `<tr>
+                    <td>${bv.tenLoai}</td>
+                    <td class="text-center fw-bold">${bv.tongSo}</td>
+                    <td>${chiTiet}</td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+        }
+
+        if (!html) {
+            html = '<p class="text-center text-muted">Không có dữ liệu thống kê.</p>';
+        }
+
+        return html;
+    }
+
+    // ============================================================
+    // THANH LÝ → POST /api/dodac/xuatfile/word-thanhly
+    // ============================================================
+    function moModalThanhLy(id) {
+        currentHoSoId = id;
+        $('#fileTemplateThanhLy').val('');
+        $('#tenFileXuat').val('ThanhLy_' + id);
+        $('#tienThanhLy, #tienUng, #tienConLai').val(0);
+        new bootstrap.Modal(document.getElementById('modalThanhLy')).show();
+    }
+
+    function tinhTienConLai() {
+        var tong = parseFloat($('#tienThanhLy').val()) || 0;
+        var ung  = parseFloat($('#tienUng').val())     || 0;
+        $('#tienConLai').val(tong - ung);
+    }
+
+    async function xuatHoSoThanhLy() {
+        const fileInput = document.getElementById('fileTemplateThanhLy');
+        const tenFile   = ($('#tenFileXuat').val() || '').trim();
+        const ngayLap   = $('#inpNgayLap').val();
+
+        if (!fileInput.files.length) { alert('Vui lòng chọn file mẫu .docx!'); return; }
+        if (!tenFile)                 { alert('Vui lòng nhập tên file xuất!'); return; }
+        if (!ngayLap)                 { alert('Vui lòng nhập ngày lập!'); return; }
+
+        const btn = $('#btnXuatHoSo');
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Đang xử lý...');
+
+        // FIX: map đúng field XuatWordThanhLyRequestDto
+        const formData = new FormData();
+        formData.append('templateFile',    fileInput.files[0]);
+        formData.append('idDangKyDoDac',   currentHoSoId);
+        formData.append('fileNameOut',     tenFile);
+        formData.append('ngayLapStr',      ngayLap);
+        formData.append('tongTien',        $('#tienThanhLy').val() || 0);
+        formData.append('tienUng',         $('#tienUng').val()     || 0);
+
+        try {
+            const res = await fetch('/api/dodac/xuatfile/word-thanhly', { method: 'POST', body: formData });
+            if (!res.ok) { throw new Error(await res.text()); }
+
+            const blob = await res.blob();
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href = url; a.download = tenFile + '.docx';
+            document.body.appendChild(a); a.click();
+            URL.revokeObjectURL(url); a.remove();
+
+            bootstrap.Modal.getInstance(document.getElementById('modalThanhLy')).hide();
+        } catch (e) {
+            alert('Lỗi xuất file: ' + e.message);
+        } finally {
+            btn.prop('disabled', false).html('<i class="bi bi-download"></i> Xuất hồ sơ');
+        }
+    }
+
+    // ============================================================
+    // XUẤT EXCEL DS BẢN VẼ → POST /api/dodac/xuatfile/excel-thanhtoan
+    // (FIX: dùng XuatExcelThanhToanRequestDto thay vì XuatExcelRequestDto)
+    // ============================================================
+    function moModalXuatDSBanVe() {
+        $('#modalXuatDSBanVe').modal('show');
+    }
+
+    async function loadDonViTheoTinh(idTinh, targetSelectId) {
+        const $sel = $(`#${targetSelectId}`);
+        if (!idTinh) { $sel.html('<option value="0">-- Tất cả đơn vị --</option>'); return; }
+        $sel.html('<option value="0">Đang tải...</option>');
+        try {
+            const data = await apiGet(`/api/dodac/dropdown/donvi-by-tinh/${idTinh}`);
+            let opts = '<option value="0">-- Tất cả đơn vị --</option>';
+            (data || []).forEach(d => { opts += `<option value="${d.id}">${d.ten}</option>`; });
+            $sel.html(opts);
+        } catch (e) {
+            $sel.html('<option value="0">-- Lỗi tải --</option>');
+        }
+    }
+
+    async function thucHienXuatExcelDSBanVe() {
+        const tuNgayStr  = $('#xuat_TuNgay').val();
+        const denNgayStr = $('#xuat_DenNgay').val();
+        if (!tuNgayStr || !denNgayStr) { alert('Vui lòng nhập khoảng thời gian!'); return; }
+
+        // FIX: XuatExcelThanhToanRequestDto { TuNgay(DateTime), DenNgay(DateTime), DaThanhToan, IdTinh, IdDonVi }
+        // Convert dd/MM/yyyy → ISO để C# parse được DateTime
+        const body = {
+            tuNgay:      formatDateToISO(tuNgayStr),
+            denNgay:     formatDateToISO(denNgayStr),
+            daThanhToan: $('#xuat_TrangThaiTT').val(),          // "all" | "true" | "false"
+            idTinh:      parseInt($('#xuat_IDTinh').val())  || null,
+            idDonVi:     parseInt($('#xuat_IDDonVi').val()) || null
+        };
+
+        $('#loader-overlay').css('display', 'flex');
+        try {
+            // POST /api/dodac/xuatfile/excel-thanhtoan
+            const res = await fetch('/api/dodac/xuatfile/excel-thanhtoan', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(body)
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+            const blob = await res.blob();
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href = url;
+            a.download = `BaoCao_ThanhToan_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            document.body.appendChild(a); a.click();
+            URL.revokeObjectURL(url); a.remove();
+
+            bootstrap.Modal.getInstance(document.getElementById('modalXuatDSBanVe')).hide();
+        } catch (e) {
+            alert('Lỗi xuất Excel: ' + e.message);
+        } finally {
+            $('#loader-overlay').hide();
+        }
+    }
+</script>

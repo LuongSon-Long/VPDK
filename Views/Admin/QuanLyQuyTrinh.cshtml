@@ -1,0 +1,414 @@
+﻿@{
+    ViewData["Title"] = "Quản trị quy trình";
+}
+
+<style>
+    #workflowContainer {
+        background-color: #ffffff;
+        background-image: radial-gradient(#e0e0e0 1px, transparent 1px);
+        background-size: 20px 20px;
+        padding: 40px;
+        min-height: 700px;
+        border-radius: 12px;
+    }
+
+    .step-node {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto 40px auto;
+    }
+
+    .step-card {
+        border-radius: 10px;
+        border: 1px solid #eee;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .transition-badge {
+        display: inline-flex;
+        align-items: center;
+        background: #e7f1ff;
+        border: 1px solid #b6d4fe;
+        border-radius: 20px;
+        padding: 5px 15px;
+        margin: 5px;
+        font-size: 0.85rem;
+        color: #084298;
+    }
+
+    .btn-del-link {
+        color: #dc3545;
+        margin-left: 10px;
+        cursor: pointer;
+    }
+
+    .btn-back-home {
+        border-radius: 8px;
+        border-color: #ccc;
+        color: #666;
+        transition: 0.3s;
+    }
+
+        .btn-back-home:hover {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+    .list-group-item {
+        border-bottom: 1px solid #eee !important;
+        transition: 0.2s;
+    }
+
+        .list-group-item:hover {
+            background-color: #fcfcfc;
+        }
+
+    .btn-delete-qt:hover {
+        background-color: #dc3545 !important;
+        color: white !important;
+    }
+
+    .border-start {
+        border-left: 1px solid #f1f1f1 !important;
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="mb-3">
+                <a href="/Admin/Index" class="btn btn-outline-secondary w-100 shadow-sm btn-back-home">
+                    <i class="bi bi-arrow-left"></i> Quay lại quản trị
+                </a>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 fw-bold">DANH MỤC</h6>
+                    <button class="btn btn-sm btn-light text-primary fw-bold" onclick="openModalQuyTrinh()">THÊM</button>
+                </div>
+                <div class="list-group list-group-flush" id="qtList">
+                    <!-- Danh sách quy trình sẽ được load từ API -->
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div id="workflowContainer" class="border shadow-sm bg-white">
+                <div class="text-center mt-5 text-muted">
+                    <i class="bi bi-diagram-3" style="font-size: 4rem; opacity: 0.2;"></i>
+                    <h5 class="mt-3">Chọn quy trình để thiết kế luồng xử lý</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal thêm/sửa quy trình -->
+<div class="modal fade" id="modalQuyTrinh" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white"><h5 class="modal-title">Thêm quy trình mới</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <input type="hidden" id="qtId" value="0" />
+                <div class="mb-3">
+                    <label class="fw-bold">Tên quy trình</label>
+                    <input type="text" id="txtTenQT" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Loại quy trình (Đặt 'DoDac' đối với công tác đo đạc)</label>
+                    <input type="text" id="txtLoaiQT" class="form-control" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button class="btn btn-primary" onclick="confirmSaveQuyTrinh()">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal thêm bước -->
+<div class="modal fade" id="modalStep" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white"><h5 class="modal-title">Thêm bước xử lý mới</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <input type="hidden" id="qt_id_hidden" />
+                <div class="mb-3">
+                    <label class="fw-bold">Tên bước</label>
+                    <input type="text" id="txtTenBuoc" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Mã Guid (Nhập mã 'TiepNhan' đối với bước đầu, 'KetThuc' đối với bước cuối và 'LuuTru' đối với bước lưu trữ)</label>
+                    <input type="text" id="txtGuidStep" class="form-control" placeholder="Nhập mã Guid" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button class="btn btn-success" onclick="confirmSaveStep()">Lưu bước</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal thiết lập nhảy bước -->
+<div class="modal fade" id="modalConnect" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white"><h5 class="modal-title">Thiết lập hướng luân chuyển</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <input type="hidden" id="conn_from_id" />
+                <div class="mb-3">
+                    <label class="fw-bold">Tên hành động</label>
+                    <input type="text" id="conn_name" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Bước tiếp theo</label>
+                    <select id="conn_target_id" class="form-select"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button class="btn btn-info" onclick="confirmSaveConnection()">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentQuyTrinhId = 0;
+        let listStepsData = [];
+
+        async function callApi(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: { 'Content-Type': 'application/json', ...options.headers }
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        }
+
+        async function loadQuyTrinhList() {
+            try {
+                const list = await callApi('/api/admin/QuyTrinh');
+                const container = $('#qtList');
+                container.empty();
+                if (!list || list.length === 0) {
+                    container.html('<div class="list-group-item text-center text-muted">Chưa có quy trình nào</div>');
+                    return;
+                }
+                list.forEach(qt => {
+                    const activeClass = (currentQuyTrinhId === qt.id) ? 'active bg-light text-primary' : '';
+                    const row = `
+                        <div class="list-group-item d-flex justify-content-between align-items-center p-0 overflow-hidden ${activeClass}" id="qt_row_${qt.id}">
+                            <div class="flex-grow-1 p-3" style="cursor:pointer" onclick="loadWorkflow(${qt.id})">
+                                <div class="fw-bold text-dark">${qt.tenQuyTrinh}</div>
+                                <small class="text-muted">ID: ${qt.id} | ${qt.loaiQuyTrinh || ''}</small>
+                            </div>
+                            <div class="border-start h-100 d-flex align-items-center justify-content-center" style="width: 50px; background: #fff5f5;">
+                                <button class="btn btn-link text-danger p-2 w-100 h-100 border-0 btn-delete-qt"
+                                        onclick="event.stopPropagation(); deleteQuyTrinh(${qt.id})"
+                                        title="Xóa quy trình này">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    container.append(row);
+                });
+            } catch (error) {
+                console.error(error);
+                $('#qtList').html('<div class="list-group-item text-danger">Lỗi tải danh sách</div>');
+            }
+        }
+
+        async function loadWorkflow(id) {
+            currentQuyTrinhId = id;
+            $('.list-group-item').removeClass('active bg-light text-primary');
+            $(`#qt_row_${id}`).addClass('active bg-light text-primary');
+
+            try {
+                const data = await callApi(`/api/admin/QuyTrinh/${id}/details`);
+                // data có thể là null hoặc { steps: [], transitions: [] }
+                listStepsData = data?.steps || [];
+                let html = `<div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="fw-bold text-primary m-0">LUỒNG XỬ LÝ HỒ SƠ</h4>
+                                <button class="btn btn-success" onclick="openModalStep(${id})">THÊM BƯỚC MỚI</button>
+                            </div>`;
+                if (listStepsData.length === 0) {
+                    html += `<div class="alert alert-info text-center">Chưa có bước xử lý nào. Hãy thêm bước đầu tiên.</div>`;
+                } else {
+                    listStepsData.forEach(step => {
+                        let transitions = (data?.transitions || []).filter(t => t.idBuocQuyTrinh === step.id);
+                        html += `
+                        <div class="step-node shadow-sm mb-4">
+                            <div class="card step-card border-0">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="fw-bold mb-0">
+                                            <span class="badge bg-dark me-2">ID: ${step.id}</span> ${step.tenBuocQt}
+                                        </h5>
+                                        <div class="btn-group border rounded">
+                                            <button class="btn btn-sm btn-white text-primary border-end" onclick="openModalConnect(${step.id})">Nối</button>
+                                            <button class="btn btn-sm btn-white text-danger" onclick="deleteStep(${step.id})">Xóa</button>
+                                        </div>
+                                    </div>
+                                    <div class="pt-2 border-top">
+                                        ${transitions.map(tr => {
+                                            let next = listStepsData.find(s => s.id === tr.idBuocTiepTheo);
+                                            let nextName = next ? next.tenBuocQt : "KẾT THÚC (hệ thống)";
+                                            return `
+                                            <div class="transition-badge shadow-sm">
+                                                <span>${tr.tenBuocChuyen} ➔ <b>${nextName}</b></span>
+                                                <i class="bi bi-x-circle-fill text-danger ms-2"
+                                                   style="cursor: pointer; font-size: 1rem;"
+                                                   onclick="deleteNhayBuoc(${tr.id})"
+                                                   title="Xóa hướng đi này"></i>
+                                            </div>`;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                }
+                $('#workflowContainer').html(html);
+            } catch (error) {
+                console.error(error);
+                // Nếu lỗi 404 (chưa có dữ liệu) thì vẫn hiển thị form thêm bước
+                if (error.message.includes('404')) {
+                    let html = `<div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h4 class="fw-bold text-primary m-0">LUỒNG XỬ LÝ HỒ SƠ</h4>
+                                    <button class="btn btn-success" onclick="openModalStep(${id})">THÊM BƯỚC MỚI</button>
+                                </div>
+                                <div class="alert alert-info text-center">Chưa có bước xử lý nào. Hãy thêm bước đầu tiên.</div>`;
+                    $('#workflowContainer').html(html);
+                } else {
+                    $('#workflowContainer').html('<div class="alert alert-danger">Lỗi tải dữ liệu quy trình</div>');
+                }
+            }
+        }
+
+        function openModalQuyTrinh() {
+            $('#qtId').val('0');
+            $('#txtTenQT').val('');
+            $('#txtLoaiQT').val('');
+            $('#modalQuyTrinh').modal('show');
+        }
+
+        async function confirmSaveQuyTrinh() {
+            const id = parseInt($('#qtId').val());
+            const tenQuyTrinh = $('#txtTenQT').val().trim();
+            const loaiQuyTrinh = $('#txtLoaiQT').val().trim();
+            if (!tenQuyTrinh) {
+                alert('Tên quy trình không được để trống');
+                return;
+            }
+            const data = { id: id, tenQuyTrinh: tenQuyTrinh, loaiQuyTrinh: loaiQuyTrinh };
+            try {
+                await callApi('/api/admin/QuyTrinh', { method: 'POST', body: JSON.stringify(data) });
+                $('#modalQuyTrinh').modal('hide');
+                loadQuyTrinhList();
+                if (currentQuyTrinhId === id) loadWorkflow(id);
+                else if (currentQuyTrinhId === 0 && id === 0) loadWorkflow(data.id);
+            } catch (error) {
+                alert('Lưu quy trình thất bại');
+            }
+        }
+
+        async function deleteQuyTrinh(id) {
+            if (!confirm('Xóa quy trình sẽ xóa toàn bộ bước và nhảy bước. Bạn có chắc?')) return;
+            try {
+                await callApi(`/api/admin/QuyTrinh/${id}`, { method: 'DELETE' });
+                if (currentQuyTrinhId === id) {
+                    currentQuyTrinhId = 0;
+                    $('#workflowContainer').html(`<div class="text-center mt-5 text-muted"><i class="bi bi-diagram-3" style="font-size: 4rem; opacity: 0.2;"></i><h5 class="mt-3">Chọn quy trình để thiết kế luồng xử lý</h5></div>`);
+                }
+                loadQuyTrinhList();
+            } catch (error) {
+                alert('Xóa thất bại');
+            }
+        }
+
+        function openModalStep(quyTrinhId) {
+            $('#qt_id_hidden').val(quyTrinhId);
+            $('#txtTenBuoc').val('');
+            $('#txtGuidStep').val('');
+            $('#modalStep').modal('show');
+        }
+
+        async function confirmSaveStep() {
+            const idQuyTrinhXuLy = parseInt($('#qt_id_hidden').val());
+            const tenBuocQt = $('#txtTenBuoc').val().trim();
+            const guid = $('#txtGuidStep').val().trim();
+            if (!tenBuocQt) {
+                alert('Tên bước không được để trống');
+                return;
+            }
+            const data = { id: 0, idQuyTrinhXuLy: idQuyTrinhXuLy, tenBuocQt: tenBuocQt, guid: guid };
+            try {
+                await callApi('/api/admin/QuyTrinh/buoc', { method: 'POST', body: JSON.stringify(data) });
+                $('#modalStep').modal('hide');
+                loadWorkflow(currentQuyTrinhId);
+            } catch (error) {
+                alert('Thêm bước thất bại');
+            }
+        }
+
+        async function deleteStep(stepId) {
+            if (!confirm('Xóa bước này sẽ xóa các nhảy bước liên quan. Bạn có chắc?')) return;
+            try {
+                await callApi(`/api/admin/QuyTrinh/buoc/${stepId}`, { method: 'DELETE' });
+                loadWorkflow(currentQuyTrinhId);
+            } catch (error) {
+                alert('Xóa bước thất bại');
+            }
+        }
+
+        function openModalConnect(fromStepId) {
+            $('#conn_from_id').val(fromStepId);
+            $('#conn_name').val('');
+            let options = '<option value="0">-- KẾT THÚC --</option>';
+            listStepsData.forEach(s => {
+                if (s.id !== fromStepId) options += `<option value="${s.id}">${s.tenBuocQt}</option>`;
+            });
+            $('#conn_target_id').html(options);
+            $('#modalConnect').modal('show');
+        }
+
+        async function confirmSaveConnection() {
+            const idBuocQuyTrinh = parseInt($('#conn_from_id').val());
+            const tenBuocChuyen = $('#conn_name').val().trim();
+            let idBuocTiepTheo = parseInt($('#conn_target_id').val());
+            if (isNaN(idBuocTiepTheo) || idBuocTiepTheo === 0) idBuocTiepTheo = null;
+            if (!tenBuocChuyen) {
+                alert('Tên hành động không được để trống');
+                return;
+            }
+            const data = { id: 0, idBuocQuyTrinh: idBuocQuyTrinh, tenBuocChuyen: tenBuocChuyen, idBuocTiepTheo: idBuocTiepTheo };
+            try {
+                await callApi('/api/admin/QuyTrinh/nhaybuoc', { method: 'POST', body: JSON.stringify(data) });
+                $('#modalConnect').modal('hide');
+                loadWorkflow(currentQuyTrinhId);
+            } catch (error) {
+                alert('Thêm nhảy bước thất bại');
+            }
+        }
+
+        async function deleteNhayBuoc(id) {
+            if (!confirm('Xóa hướng đi này?')) return;
+            try {
+                await callApi(`/api/admin/QuyTrinh/nhaybuoc/${id}`, { method: 'DELETE' });
+                loadWorkflow(currentQuyTrinhId);
+            } catch (error) {
+                alert('Xóa thất bại');
+            }
+        }
+
+        $(document).ready(function() {
+            loadQuyTrinhList();
+        });
+    </script>
+}

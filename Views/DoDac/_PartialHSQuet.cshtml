@@ -1,0 +1,133 @@
+﻿@{
+    // Partial này không nhận model từ server, dữ liệu sẽ được load bằng AJAX
+}
+
+<div id="hsquetContainer">
+    <div class="text-center p-3">Đang tải...</div>
+</div>
+
+<script>
+    // Hàm tải danh sách file quét và hiển thị
+    async function loadHSQuet(idHoSo, isOwner, isFinished) {
+        const container = document.getElementById('hsquetContainer');
+        if (!container) return;
+        container.innerHTML = '<div class="text-center p-3">Đang tải...</div>';
+        try {
+            const response = await fetch(`/api/dodac/FileQuet/by-hoso/${idHoSo}`);
+            if (!response.ok) throw new Error('Lỗi tải dữ liệu');
+            const files = await response.json();
+            renderHSQuet(files, idHoSo, isOwner, isFinished);
+        } catch (error) {
+            container.innerHTML = '<div class="alert alert-danger text-center">Lỗi tải danh sách file</div>';
+        }
+    }
+
+    function renderHSQuet(files, idHoSo, isOwner, isFinished) {
+        const container = document.getElementById('hsquetContainer');
+        let canEdit = isOwner && !isFinished;
+
+        let html = '';
+        if (canEdit) {
+            html += `
+                <div class="row g-2 mb-3 border-bottom pb-3">
+                    <div class="col-md-7">
+                        <input type="text" id="txtNoiDungFile" class="form-control" placeholder="Nhập tên giấy tờ..." />
+                    </div>
+                    <div class="col-md-4">
+                        <input type="file" id="fileInput" class="form-control" accept=".pdf,.jpg,.png" />
+                    </div>
+                    <div class="col-md-1">
+                        <button class="btn btn-primary w-100 fw-bold" onclick="uploadFileQuet(${idHoSo})">
+                            <i class="bi bi-plus-lg"></i>Thêm
+                        </button>
+                    </div>
+                    <small class="text-muted italic">Hỗ trợ các file dưới 30MB...</small>
+                </div>
+            `;
+        } else {
+            html += `<div class="alert alert-warning py-2 small"><i class="bi bi-lock-fill"></i> Bạn không có quyền chỉnh sửa file đính kèm.</div>`;
+        }
+
+        if (!files || files.length === 0) {
+            html += `<div class="alert alert-light text-center">Chưa có file đính kèm nào.</div>`;
+        } else {
+            html += `<table class="table table-sm table-bordered"><thead class="table-light"><tr><th>Nội dung file đính kèm</th><th>Tên file</th><th class="text-center" style="width:120px">Thao tác</th></tr></thead><tbody>`;
+            files.forEach(f => {
+                const extension = f.tenFileLuu ? f.tenFileLuu.split('.').pop().toLowerCase() : '';
+                const isPdf = extension === 'pdf';
+                const viewLink = isPdf ? `/api/dodac/FileQuet/view/${f.id}` : `/api/dodac/FileQuet/view/${f.id}`;
+                html += `
+                    <tr>
+                        <td>${escapeHtml(f.noiDungSoBo || '')}</td>
+                        <td class="small">${escapeHtml(f.tenFileLuu || '')}</td>
+                        <td class="text-center">
+                            ${isPdf ? `<a href="${viewLink}" target="_blank" class="btn btn-xs btn-outline-info" title="Xem trực tiếp"><i class="bi bi-eye"></i>Xem</a>` : `<a href="${viewLink}" download="${escapeHtml(f.tenFileLuu)}" class="btn btn-xs btn-outline-primary" title="Tải về"><i class="bi bi-download"></i>Tải</a>`}
+                            ${canEdit ? `<button class="btn btn-xs btn-outline-danger" onclick="deleteFileQuet(${f.id}, ${idHoSo})" title="Xóa"><i class="bi bi-trash"></i>Xóa</button>` : ''}
+                        </td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table>`;
+        }
+        container.innerHTML = html;
+    }
+
+    async function uploadFileQuet(idHoSo) {
+        const fileInput = document.getElementById('fileInput');
+        const noiDung = document.getElementById('txtNoiDungFile')?.value || '';
+        if (!noiDung || !fileInput.files.length) {
+            alert("Vui lòng nhập nội dung và chọn file!");
+            return;
+        }
+        const file = fileInput.files[0];
+        if (file.size > 30 * 1024 * 1024) {
+            alert("File vượt quá 30MB!");
+            return;
+        }
+        const formData = new FormData();
+        formData.append('idHoSo', idHoSo);
+        formData.append('noiDung', noiDung);
+        formData.append('file', file);
+        try {
+            const response = await fetch('/api/dodac/FileQuet/upload', { method: 'POST', body: formData });
+            const result = await response.json();
+            if (result.success) {
+                // Reload lại partial (cần gọi lại loadHSQuet với các tham số hiện tại)
+                // Giả sử có biến toàn cục lưu trạng thái, bạn cần truyền lại isOwner, isFinished.
+                // Tạm thời gọi lại hàm openHoSoQuet để refresh modal (nếu có)
+                if (typeof openHoSoQuet === 'function') openHoSoQuet(idHoSo);
+                else location.reload();
+            } else {
+                alert(result.message || 'Upload thất bại');
+            }
+        } catch (error) {
+            alert('Lỗi upload: ' + error.message);
+        }
+    }
+
+    async function deleteFileQuet(id, idHoSo) {
+        if (!confirm("Bạn có chắc chắn muốn xóa file này không?")) return;
+        try {
+            const response = await fetch(`/api/dodac/FileQuet/${id}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (result.success) {
+                if (typeof openHoSoQuet === 'function') openHoSoQuet(idHoSo);
+                else location.reload();
+            } else {
+                alert(result.message || 'Xóa thất bại');
+            }
+        } catch (error) {
+            alert('Lỗi xóa: ' + error.message);
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+</script>

@@ -1,0 +1,365 @@
+﻿@{
+    ViewData["Title"] = "Quản trị tài khoản";
+}
+
+<div class="container-fluid mt-3">
+    <div class="row">
+        <div class="col-md-3 border-end">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary w-100 mb-3 shadow-sm">
+                <i class="bi bi-arrow-left"></i> Quay lại trang chính
+            </a>
+            <div class="list-group shadow-sm sticky-top" style="top: 20px;">
+                <a href="#" class="list-group-item list-group-item-action active">
+                    <i class="bi bi-people-fill me-2"></i> Quản trị tài khoản
+                </a>
+                <a asp-controller="Admin" asp-action="QuanLyQuyTrinh" class="list-group-item list-group-item-action">
+                    <i class="bi bi-diagram-3 me-2"></i> Quản trị quy trình
+                </a>
+                <a asp-controller="Admin" asp-action="QuanLyDanhMuc" class="list-group-item list-group-item-action">
+                    <i class="bi bi-collection-fill me-2"></i> Quản lý danh mục
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-9 ps-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold text-uppercase text-primary m-0">Danh sách tài khoản</h4>
+                <button class="btn btn-success shadow-sm" onclick="showCreateModal()">
+                    <i class="bi bi-plus-circle me-1"></i> Thêm tài khoản
+                </button>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4 bg-light">
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-10">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Nhập tên tài khoản hoặc họ tên cần tìm...">
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary w-100" onclick="loadTaiKhoan()">
+                                <i class="bi bi-search me-1"></i> Tìm kiếm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive shadow-sm rounded">
+                <table class="table table-hover align-middle border mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 20%">Tài khoản</th>
+                            <th style="width: 25%">Họ tên</th>
+                            <th style="width: 25%">Chức vụ / Đơn vị</th>
+                            <th style="width: 30%" class="text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tblBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal thêm/sửa tài khoản -->
+<div class="modal fade" id="modalTaiKhoan" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Tạo tài khoản mới</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formAccount">
+                    <input type="hidden" id="userId" value="0" />
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Tên đăng nhập</label>
+                            <input type="text" class="form-control" id="tenTaiKhoan" required>
+                        </div>
+                        <div class="col-md-4" id="divPassword">
+                            <label class="form-label fw-bold">Mật khẩu</label>
+                            <input type="password" class="form-control" id="matKhau" placeholder="Nhập mật khẩu...">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Họ và Tên</label>
+                            <input type="text" class="form-control" id="hoVaTen">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Chức vụ</label>
+                            <select class="form-select" id="chucVuId"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Đơn vị công tác</label>
+                            <select class="form-select" id="donViId"></select>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+                    <h6 class="fw-bold text-danger mb-3"><i class="bi bi-shield-lock-fill me-2"></i>PHÂN QUYỀN TRUY CẬP MODULE</h6>
+                    <div id="moduleList" class="row px-2"></div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" id="btnSave" class="btn btn-primary px-4">Lưu dữ liệu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal reset password -->
+<div class="modal fade" id="resetPassModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">Reset mật khẩu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn reset mật khẩu của tài khoản <strong id="resetUsername"></strong> về mặc định?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-warning" id="btnConfirmReset">Reset</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentSearchTerm = '';
+        let allModules = [];
+
+        // Hàm gọi API dùng fetch
+        async function callApi(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: { 'Content-Type': 'application/json', ...options.headers }
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        }
+
+        // Load danh sách tài khoản
+        async function loadTaiKhoan() {
+            try {
+                let url = '/api/admin/TaiKhoan';
+                if (currentSearchTerm) url += `?searchTerm=${encodeURIComponent(currentSearchTerm)}`;
+                const data = await callApi(url);
+                renderTable(data);
+            } catch (error) {
+                console.error(error);
+                alert('Lỗi tải danh sách tài khoản');
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = $('#tblBody');
+            tbody.empty();
+            if (!data || data.length === 0) {
+                tbody.html('<tr><td colspan="4" class="text-center">Không có dữ liệu</td></tr>');
+                return;
+            }
+            data.forEach(item => {
+                let row = `
+                    <tr>
+                        <td><b class="text-primary">${item.tenTaiKhoan || ''}</b></td>
+                        <td>${item.hoVaTen || ''}</td>
+                        <td>
+                            <div class="small fw-bold text-dark">${item.tenChucVu || ''}</div>
+                            <div class="small text-muted">${item.tenDonViCongTac || ''}</div>
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary" onclick="showEditModal(${item.id})" title="Sửa & Phân quyền">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning mx-1" onclick="showResetModal(${item.id}, '${item.tenTaiKhoan}')" title="Đặt lại mật khẩu">
+                                <i class="bi bi-key-fill"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${item.id})" title="Xóa tài khoản">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        }
+
+        // Load dữ liệu danh mục (chức vụ, đơn vị, module)
+        async function loadMasterData() {
+            try {
+                const [chucVu, donVi, modules] = await Promise.all([
+                    callApi('/api/admin/DanhMuc/ChucVu'),
+                    callApi('/api/admin/DanhMuc/DonViCongTac'),
+                    callApi('/api/admin/Module')
+                ]);
+                populateSelect('#chucVuId', chucVu, 'id', 'tenChucVu');
+                populateSelect('#donViId', donVi, 'id', 'tenDonVi');
+                allModules = modules;
+                renderModuleCheckboxes(modules, []);
+            } catch (error) {
+                console.error(error);
+                alert('Lỗi tải dữ liệu danh mục');
+            }
+        }
+
+        function populateSelect(selector, data, idField, nameField) {
+            const select = $(selector);
+            select.empty();
+            select.append('<option value="">-- Chọn --</option>');
+            if (data && data.length) {
+                data.forEach(item => {
+                    select.append(`<option value="${item[idField]}">${item[nameField]}</option>`);
+                });
+            }
+        }
+
+        function renderModuleCheckboxes(modules, selectedIds) {
+            const container = $('#moduleList');
+            container.empty();
+            if (!modules || modules.length === 0) {
+                container.html('<div class="col-12 text-muted">Không có module nào</div>');
+                return;
+            }
+            modules.forEach(module => {
+                const checked = selectedIds.includes(module.id) ? 'checked' : '';
+                container.append(`
+                    <div class="col-md-4 mb-2">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input module-checkbox" type="checkbox" id="mod_${module.id}" value="${module.id}" ${checked}>
+                            <label class="form-check-label" for="mod_${module.id}">${module.tenModule}</label>
+                        </div>
+                    </div>
+                `);
+            });
+        }
+
+        // Mở modal thêm mới
+        function showCreateModal() {
+            $('#modalTitle').text('Tạo tài khoản mới');
+            $('#formAccount')[0].reset();
+            $('#userId').val('0');
+            $('#tenTaiKhoan').prop('readonly', false);
+            $('#divPassword').show();
+            renderModuleCheckboxes(allModules, []);
+            $('#modalTaiKhoan').modal('show');
+        }
+
+        // Mở modal sửa
+        async function showEditModal(id) {
+            try {
+                const user = await callApi(`/api/admin/TaiKhoan/${id}`);
+                $('#modalTitle').text('Chỉnh sửa tài khoản & Phân quyền');
+                $('#userId').val(user.id);
+                $('#tenTaiKhoan').val(user.tenTaiKhoan).prop('readonly', true);
+                $('#hoVaTen').val(user.hoVaTen || '');
+                $('#chucVuId').val(user.idchucVu || '');
+                $('#donViId').val(user.iddonViCongTac || '');
+                $('#divPassword').hide();
+                renderModuleCheckboxes(allModules, user.userModules || []);
+                $('#modalTaiKhoan').modal('show');
+            } catch (error) {
+                alert('Lỗi tải thông tin tài khoản');
+            }
+        }
+
+        // Lưu (thêm hoặc sửa)
+        $('#btnSave').click(async function() {
+            const id = parseInt($('#userId').val());
+            const tenTaiKhoan = $('#tenTaiKhoan').val().trim();
+            if (!tenTaiKhoan) {
+                alert('Tên đăng nhập không được trống');
+                return;
+            }
+            const matKhau = $('#matKhau').val();
+            if (id === 0 && !matKhau) {
+                alert('Mật khẩu không được trống khi tạo mới');
+                return;
+            }
+            const selectedModules = [];
+            $('.module-checkbox:checked').each(function() { selectedModules.push(parseInt($(this).val())); });
+
+            const data = {
+                tenTaiKhoan: tenTaiKhoan,
+                matKhau: matKhau,
+                hoVaTen: $('#hoVaTen').val(),
+                idchucVu: parseInt($('#chucVuId').val()) || null,
+                iddonViCongTac: parseInt($('#donViId').val()) || null,
+                selectedModules: selectedModules
+            };
+            try {
+                let url = '/api/admin/TaiKhoan';
+                let method = 'POST';
+                if (id !== 0) {
+                    url += `/${id}`;
+                    method = 'PUT';
+                    delete data.tenTaiKhoan;
+                    delete data.matKhau;
+                }
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    $('#modalTaiKhoan').modal('hide');
+                    loadTaiKhoan();
+                } else {
+                    alert('Lỗi lưu dữ liệu');
+                }
+            } catch (error) {
+                alert('Lỗi kết nối');
+            }
+        });
+
+        // Reset mật khẩu
+        let resetUserId = 0;
+        function showResetModal(id, username) {
+            resetUserId = id;
+            $('#resetUsername').text(username);
+            $('#resetPassModal').modal('show');
+        }
+        $('#btnConfirmReset').click(async function() {
+            try {
+                const response = await fetch(`/api/admin/TaiKhoan/${resetUserId}/reset-password`, { method: 'POST' });
+                if (response.ok) {
+                    alert('Reset mật khẩu thành công (mặc định: VPDK@123)');
+                    $('#resetPassModal').modal('hide');
+                } else {
+                    alert('Reset thất bại');
+                }
+            } catch (error) {
+                alert('Lỗi kết nối');
+            }
+        });
+
+        // Xóa
+        async function deleteUser(id) {
+            if (!confirm('Bạn có chắc chắn muốn xóa tài khoản này?')) return;
+            try {
+                const response = await fetch(`/api/admin/TaiKhoan/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadTaiKhoan();
+                } else {
+                    alert('Xóa thất bại');
+                }
+            } catch (error) {
+                alert('Lỗi kết nối');
+            }
+        }
+
+        // Tìm kiếm
+        $('#searchInput').on('keyup', function() {
+            currentSearchTerm = $(this).val();
+            loadTaiKhoan();
+        });
+
+        $(document).ready(function() {
+            loadMasterData();
+            loadTaiKhoan();
+        });
+    </script>
+}

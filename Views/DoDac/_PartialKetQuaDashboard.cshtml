@@ -1,0 +1,184 @@
+﻿@{
+    // Partial này không nhận model từ server, dữ liệu được tải bằng AJAX
+}
+
+<div id="dashboardContainer">
+    <div class="text-center p-5">Đang tải dữ liệu thống kê...</div>
+</div>
+
+<script>
+    // Hàm tải dữ liệu dashboard từ API
+    async function loadDashboardData(tuNgay, denNgay, idTinh = null, idDonVi = null) {
+        const container = document.getElementById('dashboardContainer');
+        if (!container) return;
+        container.innerHTML = '<div class="text-center p-5">Đang tải dữ liệu thống kê...</div>';
+        try {
+            const params = new URLSearchParams();
+            if (tuNgay) params.append('tuNgay', tuNgay);
+            if (denNgay) params.append('denNgay', denNgay);
+            if (idTinh) params.append('idTinh', idTinh);
+            if (idDonVi) params.append('idDonVi', idDonVi);
+            const response = await fetch(`/api/dodac/baocao/thongke?${params.toString()}`);
+            if (!response.ok) throw new Error('Lỗi tải dữ liệu');
+            const data = await response.json();
+            renderDashboard(data, tuNgay, denNgay);
+        } catch (error) {
+            container.innerHTML = '<div class="alert alert-danger text-center">Lỗi tải dữ liệu thống kê</div>';
+        }
+    }
+
+    function renderDashboard(data, tuNgay, denNgay) {
+        const container = document.getElementById('dashboardContainer');
+        if (!data) {
+            container.innerHTML = '<div class="alert alert-warning text-center">Không có dữ liệu thống kê</div>';
+            return;
+        }
+
+        const thongKeTrangThai = data.thongKeTrangThai || [];
+        const thongKeCanBo = data.thongKeCanBo || [];
+        const thongKeBanVe = data.thongKeBanVe || [];
+        const tongSoHoSo = thongKeTrangThai.reduce((sum, item) => sum + item.soLuong, 0);
+
+        let html = `
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <h5 class="fw-bold text-primary"><i class="bi bi-graph-up-arrow me-2"></i>TỔNG HỢP HỒ SƠ (${tuNgay || ''} - ${denNgay || ''})</h5>
+                </div>
+                <div class="col-md-4 text-end">
+                    <span class="badge bg-dark p-2">Tổng cộng: ${tongSoHoSo} hồ sơ</span>
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-7">
+                    <div class="row g-3">
+        `;
+        thongKeTrangThai.forEach(item => {
+            const mauSac = item.mauSac || '#4e73df';
+            html += `
+                <div class="col-md-6">
+                    <div class="card shadow-sm border-0 border-top border-4 h-100" style="border-top-color: ${mauSac} !important;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="fw-bold text-muted small">${escapeHtml(item.tenTrangThai)}</span>
+                                <h3 class="fw-bold mb-0" style="color: ${mauSac}">${item.soLuong}</h3>
+                            </div>
+                            <div class="row g-0 py-2 border-top border-bottom my-2 bg-light">
+                                <div class="col-6 text-center border-end">
+                                    <small class="text-muted d-block small">Còn hạn</small>
+                                    <b class="text-success">${item.conHan}</b>
+                                </div>
+                                <div class="col-6 text-center">
+                                    <small class="text-muted d-block small">Quá hạn</small>
+                                    <b class="text-danger">${item.quaHan}</b>
+                                </div>
+                            </div>
+                            <a href="javascript:void(0)" onclick="moModalChiTiet('${escapeHtml(item.tenTrangThai).replace(/'/g, "\\'")}')" class="text-decoration-none small fw-bold">
+                                <u>Xem danh sách</u> <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += `
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="card shadow-sm border-0 p-3 h-100 d-flex align-items-center justify-content-center">
+                        <canvas id="canvasChart" style="max-height: 250px; width: 100%; display: block;"></canvas>
+                    </div>
+                </div>
+            </div>
+            <hr />
+            <div class="mt-4">
+                <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-people me-2"></i>THỐNG KÊ CHI TIẾT THEO CÁN BỘ XỬ LÝ</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover border">
+                        <thead class="table-light small">
+                            <tr><th class="ps-3">Họ và tên cán bộ</th><th class="text-center">Tổng hồ sơ</th><th class="text-center text-success">Đã xong</th><th class="text-center text-primary">Đang xử lý</th><th class="text-center text-danger">Quá hạn</th><th class="text-center">Thao tác</th></tr></thead>
+                        <tbody class="small">
+        `;
+        if (thongKeCanBo.length === 0) {
+            html += '<tr><td colspan="6" class="text-center p-3 text-muted">Không có dữ liệu cán bộ xử lý trong khoảng thời gian này.</td></tr>';
+        } else {
+            thongKeCanBo.forEach(cb => {
+                html += `
+                    <tr>
+                        <td class="ps-3"><b>${escapeHtml(cb.tenCanBo)}</b></td>
+                        <td class="text-center">${cb.tong}</td>
+                        <td class="text-center">${cb.daXong}</td>
+                        <td class="text-center">${cb.dangLam}</td>
+                        <td class="text-center fw-bold text-danger">${cb.quaHan}</td>
+                        <td class="text-center">
+                            <button class="btn btn-outline-primary btn-xs" onclick="moModalChiTietNhanVien(${cb.idTaiKhoanDo}, '${escapeHtml(cb.tenCanBo).replace(/'/g, "\\'")}')">
+                                <i class="bi bi-list-check"></i> Xem & Xuất Excel
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+        html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h6 class="fw-bold mb-0 text-success text-uppercase"><i class="bi bi-layers-half me-2"></i>Thống kê số lượng bản vẽ theo loại & trạng thái</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light"><tr><th class="ps-3" style="width:250px">Loại bản vẽ</th><th class="text-center" style="width:120px">Tổng số bản vẽ</th><th>Chi tiết theo trạng thái</th></tr></thead>
+                            <tbody>
+        `;
+        if (thongKeBanVe.length === 0) {
+            html += '<tr><td colspan="3" class="text-center py-5 text-muted">Không tìm thấy dữ liệu bản vẽ phù hợp với điều kiện lọc.</td></tr>';
+        } else {
+            thongKeBanVe.forEach(item => {
+                html += `<tr><td class="ps-3">${escapeHtml(item.tenLoai)}</td><td class="text-center">${item.tongSo}</td><td>`;
+                if (item.chiTietTrangThai && item.chiTietTrangThai.length) {
+                    item.chiTietTrangThai.forEach(st => {
+                        html += `<span class="badge border text-dark me-1">${escapeHtml(st.tenTrangThai)}: ${st.soLuong}</span>`;
+                    });
+                }
+                html += `</td></tr>`;
+            });
+        }
+        html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.innerHTML = html;
+
+        // Vẽ biểu đồ (chỉ khi có dữ liệu và thư viện Chart.js đã load)
+        setTimeout(() => {
+            const ctx = document.getElementById('canvasChart')?.getContext('2d');
+            if (ctx && thongKeTrangThai.length && typeof Chart !== 'undefined') {
+                const labels = thongKeTrangThai.map(x => x.tenTrangThai);
+                const counts = thongKeTrangThai.map(x => x.soLuong);
+                const colors = thongKeTrangThai.map(x => x.mauSac || '#4e73df');
+                if (window.myChartInstance) window.myChartInstance.destroy();
+                window.myChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels: labels, datasets: [{ data: counts, backgroundColor: colors, borderWidth: 2, borderColor: '#ffffff' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }, cutout: '70%' }
+                });
+            }
+        }, 100);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+</script>

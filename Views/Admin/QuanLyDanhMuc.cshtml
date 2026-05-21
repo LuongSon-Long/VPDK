@@ -1,0 +1,279 @@
+﻿@{
+    ViewData["Title"] = "Quản lý danh mục";
+}
+
+<div class="container-fluid mt-3">
+    <div class="row">
+        <div class="col-md-3 border-end">
+            <div class="list-group shadow-sm">
+                <a asp-action="Index" class="list-group-item list-group-item-action">Quay lại trang quản trị</a>
+                <a asp-controller="Admin" asp-action="QuanLyQuyTrinh" class="list-group-item list-group-item-action">
+                    <i class="bi bi-diagram-3 me-2"></i> Quản trị quy trình
+                </a>
+                <a href="#" class="list-group-item list-group-item-action active">Quản lý danh mục</a>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabChucVu">Chức vụ</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabBanVe">Loại bản vẽ</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabTrangThai">Trạng thái</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabDonVi">Đơn vị chuyên môn</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabTinh">Tỉnh/TP</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabXa">Xã/Phường</button></li>
+            </ul>
+
+            <div class="tab-content border border-top-0 p-3 bg-white shadow-sm">
+                <!-- Chức vụ -->
+                <div class="tab-pane fade show active" id="tabChucVu">
+                    <button class="btn btn-sm btn-success mb-2" onclick="openModal('ChucVu')">Thêm Chức vụ</button>
+                    <table class="table table-sm table-bordered" id="tableChucVu">
+                        <thead class="table-light"><tr><th>ID</th><th>Tên Chức Vụ</th><th>Thao tác</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Loại bản vẽ -->
+                <div class="tab-pane fade" id="tabBanVe">
+                    <button class="btn btn-sm btn-success mb-2" onclick="openModal('LoaiBanVe')">Thêm Loại bản vẽ</button>
+                    <table class="table table-sm table-bordered" id="tableLoaiBanVe">
+                        <thead class="table-light"><tr><th>ID</th><th>Tên Loại Bản Vẽ</th><th>Thao tác</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Trạng thái -->
+                <div class="tab-pane fade" id="tabTrangThai">
+                    <button class="btn btn-sm btn-success mb-2" onclick="openModal('TrangThai')">Thêm Trạng thái</button>
+                    <table class="table table-sm table-bordered" id="tableTrangThai">
+                        <thead class="table-light"><tr><th>ID</th><th>Trạng thái bản vẽ</th><th>Thao tác</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Đơn vị công tác -->
+                <div class="tab-pane fade" id="tabDonVi">
+                    <button class="btn btn-sm btn-success mb-2" onclick="openModal('DonViCongTac')">Thêm Đơn vị</button>
+                    <table class="table table-sm table-bordered" id="tableDonVi">
+                        <thead class="table-light"><tr><th>ID</th><th>Tên Đơn Vị</th><th>Thuộc Tỉnh</th><th>Thao tác</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Tỉnh -->
+                <div class="tab-pane fade" id="tabTinh">
+                    <button class="btn btn-sm btn-success mb-2" onclick="openModal('Tinh')">Thêm Tỉnh</button>
+                    <table class="table table-sm table-bordered" id="tableTinh">
+                        <thead class="table-light"><tr><th>ID</th><th>Mã Tỉnh</th><th>Tên Tỉnh</th><th>Thao tác</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Xã -->
+                <div class="tab-pane fade" id="tabXa">
+                    <button class="btn btn-sm btn-success mb-2" onclick="openModal('Xa')">Thêm Xã/Phường</button>
+                    <table class="table table-sm table-bordered" id="tableXa">
+                        <thead class="table-light"><tr><th>ID</th><th>Mã Xã</th><th>Tên Xã</th><th>Thuộc Tỉnh</th><th>Thao tác</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal chung cho thêm/sửa -->
+<div class="modal fade" id="modalDM" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Cập nhật danh mục</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="dmTable" />
+                <input type="hidden" id="dmId" />
+
+                <div class="mb-3" id="groupParent" style="display:none;">
+                    <label class="form-label">Thuộc Tỉnh/TP</label>
+                    <select id="dmParent" class="form-select"></select>
+                </div>
+                <div class="mb-3" id="groupTinh" style="display:none;">
+                    <label class="form-label">Thuộc Tỉnh/TP</label>
+                    <select id="dmTinh" class="form-select"></select>
+                </div>
+                <div class="mb-3" id="groupCode" style="display:none;">
+                    <label class="form-label">Mã (Mã Tỉnh/Mã Xã)</label>
+                    <input type="text" id="dmCode" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Tên gọi</label>
+                    <input type="text" id="dmName" class="form-control" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="saveDM()">Lưu lại</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Hàm gọi API chung
+        async function callApi(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: { 'Content-Type': 'application/json', ...options.headers }
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        }
+
+        // Tải danh sách tất cả các bảng
+        async function loadAllTables() {
+            await Promise.all([
+                loadTable('ChucVu', 'tableChucVu', ['id', 'tenChucVu']),
+                loadTable('LoaiBanVe', 'tableLoaiBanVe', ['id', 'tenLoaiBanVe']),
+                loadTable('TrangThai', 'tableTrangThai', ['id', 'trangThai']),
+                loadTable('DonViCongTac', 'tableDonVi', ['id', 'tenDonVi', 'tenTinh']),
+                loadTable('Tinh', 'tableTinh', ['id', 'maTinh', 'tenTinh']),
+                loadTable('Xa', 'tableXa', ['id', 'maXa', 'tenXa', 'tenTinh'])
+            ]);
+        }
+
+        async function loadTable(table, tableId, fields) {
+            try {
+                const data = await callApi(`/api/admin/DanhMuc/${table}`);
+                renderTable(tableId, data, fields, table);
+            } catch (error) {
+                console.error(`Lỗi tải ${table}:`, error);
+                $(`#${tableId} tbody`).html('<tr><td colspan="10" class="text-danger">Lỗi tải dữ liệu</td></tr>');
+            }
+        }
+
+        function renderTable(tableId, data, fields, table) {
+            const tbody = $(`#${tableId} tbody`);
+            tbody.empty();
+            if (!data || data.length === 0) {
+                tbody.html('<tr><td colspan="10" class="text-center">Không có dữ liệu</td></tr>');
+                return;
+            }
+            data.forEach(item => {
+                let row = '<tr>';
+                fields.forEach(field => {
+                    let value = item[field] !== undefined && item[field] !== null ? item[field] : '';
+                    row += `<td>${value}</td>`;
+                });
+                // Thêm cột thao tác
+                row += `<td>
+                            <button class="btn btn-sm btn-primary" onclick="openModal('${table}', ${item.id}, '${item[fields[1]] || ''}', '${item.maTinh || item.maXa || ''}', ${item.idtinh || 0})">Sửa</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteDM('${table}', ${item.id})">Xóa</button>
+                        </td>`;
+                row += '</tr>';
+                tbody.append(row);
+            });
+        }
+
+        // Mở modal thêm/sửa
+        async function openModal(table, id = 0, name = '', code = '', parentId = 0, idTinh = 0) {
+            $('#dmTable').val(table);
+            $('#dmId').val(id);
+            $('#dmName').val(name);
+            $('#dmCode').val(code);
+            $('#dmParent').val(parentId);
+            $('#dmTinh').val(idTinh);
+
+            // Ẩn/hiện các nhóm
+            $('#groupCode, #groupParent, #groupTinh').hide();
+            if (table === 'Tinh' || table === 'Xa') $('#groupCode').show();
+            if (table === 'Xa') $('#groupParent').show();
+            if (table === 'DonViCongTac') $('#groupTinh').show();
+
+            // Load danh sách tỉnh cho dropdown parent (nếu cần)
+            if (table === 'Xa' || table === 'DonViCongTac') {
+                try {
+                    const tinhs = await callApi('/api/admin/DanhMuc/Tinh');
+                    const select = table === 'Xa' ? '#dmParent' : '#dmTinh';
+                    $(select).empty().append('<option value="">-- Chọn Tỉnh --</option>');
+                    tinhs.forEach(t => {
+                        $(select).append(`<option value="${t.id}">${t.tenTinh}</option>`);
+                    });
+                    if (parentId) $(select).val(parentId);
+                    if (idTinh) $('#dmTinh').val(idTinh);
+                } catch (error) {
+                    console.error('Lỗi tải tỉnh:', error);
+                }
+            }
+
+            $('#modalDM').modal('show');
+        }
+
+        // Lưu (thêm hoặc sửa)
+        async function saveDM() {
+            const table = $('#dmTable').val();
+            const id = parseInt($('#dmId').val()) || 0;
+            const name = $('#dmName').val().trim();
+            const code = $('#dmCode').val();
+            const parentId = $('#dmParent').val();
+            const idTinh = $('#dmTinh').val();
+
+            if (!name) {
+                alert('Vui lòng nhập tên!');
+                return;
+            }
+            if (table === 'DonViCongTac' && !idTinh) {
+                alert('Vui lòng chọn Tỉnh cho đơn vị!');
+                return;
+            }
+
+            const data = {
+                table: table,
+                id: id,
+                name: name,
+                code: code || null,
+                parentId: parentId ? parseInt(parentId) : null,
+                idTinh: idTinh ? parseInt(idTinh) : null
+            };
+
+            try {
+                const result = await callApi('/api/admin/DanhMuc/save', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                if (result.success) {
+                    $('#modalDM').modal('hide');
+                    loadAllTables(); // reload tất cả tab
+                } else {
+                    alert('Lỗi: ' + (result.message || 'Không thể lưu'));
+                }
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        // Xóa
+        async function deleteDM(table, id) {
+            if (!confirm('Bạn có chắc chắn muốn xóa mục này?')) return;
+            try {
+                const result = await callApi('/api/admin/DanhMuc/delete', {
+                    method: 'POST',
+                    body: JSON.stringify({ table: table, id: id })
+                });
+                if (result.success) {
+                    loadAllTables();
+                } else {
+                    alert('Lỗi: ' + (result.message || 'Xóa thất bại'));
+                }
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        $(document).ready(function() {
+            loadAllTables();
+        });
+    </script>
+}
