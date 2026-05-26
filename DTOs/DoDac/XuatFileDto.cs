@@ -26,4 +26,9 @@
         public decimal TienUng { get; set; }
         public string? FileNameOut { get; set; }
     }
+
+    public class XuatExcelTheoIdRequestDto
+    {
+        public List<int> Ids { get; set; } = new List<int>();
+    }
 }

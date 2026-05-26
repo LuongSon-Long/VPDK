@@ -9,6 +9,7 @@
         public string? TenChucVu { get; set; }
         public int? IddonViCongTac { get; set; }
         public string? TenDonViCongTac { get; set; }
+        public int? IdTinh { get; set; }
         public List<int>? UserModules { get; set; }
     }
 }

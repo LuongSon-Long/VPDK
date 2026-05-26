@@ -6,7 +6,9 @@
         public string? TenTaiKhoan { get; set; }
         public string? HoVaTen { get; set; }
         public string? TenChucVu { get; set; }
+        public int? IdChucVu { get; set; }
         public string? TenDonViCongTac { get; set; }
+        public int? IdTinh { get; set; }
         public int? IdDonViCongTac { get; set; }
         public List<string>? Modules { get; set; }
     }

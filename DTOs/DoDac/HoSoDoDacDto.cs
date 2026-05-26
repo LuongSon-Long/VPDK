@@ -41,6 +41,7 @@
         public string? SoDienThoai { get; set; }
         public string? MucDichDangKy { get; set; }
         public string? DiaChiThuaDat { get; set; }
+        public string? SeriGCN { get; set; }
         public int? IDXa { get; set; }
         public int? IDTinh { get; set; }
         public string? GhiChu { get; set; }

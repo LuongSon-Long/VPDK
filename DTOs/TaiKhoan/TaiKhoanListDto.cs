@@ -7,5 +7,7 @@
         public string? HoVaTen { get; set; }
         public string? TenChucVu { get; set; }
         public string? TenDonViCongTac { get; set; }
+        public int? IdTinh { get; set; }
+
     }
 }
