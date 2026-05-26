@@ -35,6 +35,8 @@ namespace HeThongQuanLyVanPhong.Controllers.Api
                 HttpContext.Session.SetString("DonViCongTac", result.User.TenDonViCongTac ?? "");
                 if (result.User.IdDonViCongTac.HasValue)
                     HttpContext.Session.SetInt32("UserDonViId", result.User.IdDonViCongTac.Value);
+                if (result.User.IdTinh.HasValue)
+                    HttpContext.Session.SetInt32("UserTinhId", result.User.IdTinh.Value);
             }
 
             return Ok(result);

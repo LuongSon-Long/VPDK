@@ -52,7 +52,8 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.Admin
                 MatKhau = request.MatKhau,
                 HoVaTen = request.HoVaTen,
                 IdchucVu = request.IdchucVu,
-                IddonViCongTac = request.IddonViCongTac
+                IddonViCongTac = request.IddonViCongTac,
+                Idtinh = request.IdTinh
             };
 
             var result = await _taiKhoanService.CreateAsync(user, request.SelectedModules ?? new List<int>(), currentUserId);
@@ -71,7 +72,8 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.Admin
                 Id = id,
                 HoVaTen = request.HoVaTen,
                 IdchucVu = request.IdchucVu,
-                IddonViCongTac = request.IddonViCongTac
+                IddonViCongTac = request.IddonViCongTac,
+                Idtinh = request.IdTinh
             };
 
             var result = await _taiKhoanService.UpdateAsync(user, request.SelectedModules ?? new List<int>(), currentUserId);

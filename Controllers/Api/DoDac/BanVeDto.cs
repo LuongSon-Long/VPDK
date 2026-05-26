@@ -23,6 +23,7 @@
         public int? IDNguoiKy { get; set; }
         public DateTime? NgayKy { get; set; }
         public string? GhiChu { get; set; }
+        public string? DonViDoDac { get; set; }
     }
 
     public class SaveBanVeDto
@@ -48,5 +49,6 @@
         public string? NgayKyStr { get; set; }
         public string? GhiChu { get; set; }
         public string? TrangThai { get; set; }
+        public string? DonViDoDac { get; set; }
     }
 }
