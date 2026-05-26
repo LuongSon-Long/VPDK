@@ -55,17 +55,35 @@ namespace HeThongQuanLyVanPhong.Services
 
             // Thống kê cán bộ
             var thongKeCanBo = filteredData
-                .Where(x => x.IdtaiKhoanDo != null)
-                .GroupBy(x => new { x.IdtaiKhoanDo, x.IdtaiKhoanDoNavigation!.HoVaTen })
-                .Select(g => new ThongKeCanBoDto
-                {
-                    IDTaiKhoanDo = g.Key.IdtaiKhoanDo ?? 0,
-                    TenCanBo = g.Key.HoVaTen ?? "--Chưa xác định--",
-                    Tong = g.Count(),
-                    DaXong = g.Count(x => x.TrangThaiDo == "KetThuc"),
-                    DangLam = g.Count(x => x.TrangThaiDo != "KetThuc"),
-                    QuaHan = g.Count(x => x.TrangThaiDo != "KetThuc" && x.NgayTraKetQua.HasValue && x.NgayTraKetQua.Value.ToDateTime(TimeOnly.MinValue).Date < bayGio)
-                }).OrderByDescending(x => x.Tong).ToList();
+                .GroupBy(x => x.IdtaiKhoanDo ?? 0) // Group theo ID cán bộ đo thực địa
+                .Select(g => {
+                    // Lấy bản ghi đầu tiên có thông tin điều hướng cán bộ xử lý (để lấy Họ và Tên)
+                    var firstWithNav = g.FirstOrDefault(x => x.IdtaiKhoanDoNavigation != null);
+                    var items = g.ToList();
+
+                    // Chuyển đổi ngày hôm nay sang định dạng DateOnly để so sánh đồng bộ dữ liệu
+                    DateOnly homNayDateOnly = DateOnly.FromDateTime(bayGio);
+
+                    // Tính toán cột số 3: Quá hạn đo (Bao gồm cả đã đo trễ hạn và chưa đo nhưng hiện tại đã quá ngày hẹn)
+                    int soLuongQuaHanDo = items.Count(x =>
+                        x.NgayYeuCau.HasValue && (
+                            // Trường hợp 1: Đã thực hiện đo nhưng ngày đo thực tế lớn hơn ngày hẹn yêu cầu
+                            (x.NgayDo.HasValue && x.NgayDo.Value > x.NgayYeuCau.Value) ||
+                            // Trường hợp 2: Chưa đo đạc và hiện trạng ngày hôm nay đã vượt quá hạn hẹn yêu cầu
+                            (!x.NgayDo.HasValue && homNayDateOnly > x.NgayYeuCau.Value)
+                        )
+                    );
+
+                    return new ThongKeCanBoDto
+                    {
+                        IDTaiKhoanDo = g.Key,
+                        TenCanBo = firstWithNav?.IdtaiKhoanDoNavigation?.HoVaTen ?? "Chưa phân công",
+                        Tong = items.Count,
+                        DaDoDac = items.Count(x => x.NgayDo.HasValue),
+                        QuaHanDo = soLuongQuaHanDo,
+                        DaTraKetQua = items.Count(x => x.NgayTraKetQua.HasValue)
+                    };
+                }).ToList();
 
             // Thống kê bản vẽ
             var listIdHoSo = filteredData.Select(x => x.Id).ToList();

@@ -21,7 +21,7 @@ namespace HeThongQuanLyVanPhong.Services
             _fileQuetRepo = fileQuetRepo;
             _logRepo = logRepo;
             _context = context;
-            _storageRoot = configuration["StorageRoot"] ?? @"D:\CSDLDoDac\HSQuet";
+            _storageRoot = configuration["StorageRoot"] ?? @"D:\HSQDoDac";
         }
 
         public async Task<List<FileQuetDto>> GetFilesByHoSoIdAsync(int idHoSo)

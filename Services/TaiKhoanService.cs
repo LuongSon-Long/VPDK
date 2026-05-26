@@ -35,7 +35,8 @@ namespace HeThongQuanLyVanPhong.Services
                     TenTaiKhoan = t.TenTaiKhoan,
                     HoVaTen = t.HoVaTen,
                     TenChucVu = t.IdchucVuNavigation != null ? t.IdchucVuNavigation.TenChucVu : "",
-                    TenDonViCongTac = t.IddonViCongTacNavigation != null ? t.IddonViCongTacNavigation.TenDonVi : ""
+                    TenDonViCongTac = t.IddonViCongTacNavigation != null ? t.IddonViCongTacNavigation.TenDonVi : "",
+                    IdTinh = t.Idtinh
                 })
                 .OrderByDescending(t => t.Id)
                 .ToListAsync();
@@ -59,6 +60,7 @@ namespace HeThongQuanLyVanPhong.Services
                 TenChucVu = taiKhoan.IdchucVuNavigation?.TenChucVu,
                 IddonViCongTac = taiKhoan.IddonViCongTac,
                 TenDonViCongTac = taiKhoan.IddonViCongTacNavigation?.TenDonVi,
+                IdTinh = taiKhoan.Idtinh,
                 UserModules = moduleIds
             };
         }
@@ -88,6 +90,7 @@ namespace HeThongQuanLyVanPhong.Services
             existing.HoVaTen = model.HoVaTen;
             existing.IdchucVu = model.IdchucVu;
             existing.IddonViCongTac = model.IddonViCongTac;
+            existing.Idtinh = model.Idtinh;
 
             await _taiKhoanRepo.UpdateAsync(existing);
             await _taiKhoanRepo.UpdateUserModulesAsync(model.Id, selectedModules);
@@ -132,6 +135,66 @@ namespace HeThongQuanLyVanPhong.Services
             return modules.Cast<object>().ToList();
         }
 
+        public async Task<List<ModuleDashboardDto>> GetUserDashboardModulesAsync(int userId)
+        {
+            // 1. Kiểm tra xem tài khoản đăng nhập hiện tại có tên đăng nhập là "admin" hay không
+            var taiKhoan = await _context.TaiKhoans.FindAsync(userId);
+            bool isAdminAccount = taiKhoan?.TenTaiKhoan?.Trim().ToLower() == "admin";
+
+            // 2. Truy vấn lấy các module của tài khoản từ bảng phân quyền như bình thường
+            var modules = await _context.PhanQuyenModules
+                .Where(pq => pq.IdtaiKhoan == userId)
+                .Select(pq => pq.IdmoduleNavigation)
+                .Where(m => m != null)
+                .ToListAsync();
+
+            // 3. ĐIỀU KIỆN ĐẶC CÁCH: Nếu là tài khoản admin gốc và trong danh sách chưa có module Quản trị hệ thống (Id = 5)
+            if (isAdminAccount && !modules.Any(m => m.Id == 5))
+            {
+                // Tự động lấy Module Quản trị hệ thống từ bảng gốc để nạp vào danh sách hiển thị
+                var systemAdminModule = await _context.Modules.FindAsync(5);
+                if (systemAdminModule != null)
+                {
+                    modules.Add(systemAdminModule);
+                }
+            }
+
+            // 4. Ánh xạ dữ liệu sang DTO để trả ra cho Controller hiển thị lên View Index
+            return modules.Select(m => new ModuleDashboardDto
+            {
+                Id = m!.Id,
+                TenModule = m.TenModule ?? "Không tên",
+                Url = GetUrlForModule(m.Id),
+                IconClass = GetIconForModule(m.Id)
+            }).ToList();
+        }
+        // --- Hàm phụ trợ gán Url theo cấu trúc thư mục của bạn ---
+        private string GetUrlForModule(int id)
+        {
+            return id switch
+            {
+                1 => "/DoDac/Index",
+                2 => "/ThuTucHanhChinh/Index",
+                3 => "/VanThu/Index",
+                4 => "/QuanLyPhoiGCN/Index",
+                5 => "/Admin/Index",
+                _ => "/Home/Index"
+            };
+        }
+
+        // --- Hàm phụ trợ gán Icon (dùng Bootstrap Icons) ---
+        private string GetIconForModule(int id)
+        {
+            return id switch
+            {
+                1 => "bi-compass",
+                2 => "bi-file-earmark-text",
+                3 => "bi-envelope-paper",
+                4 => "bi-award",
+                5 => "bi-gear",
+                _ => "bi-box"
+            };
+        }
 
         public async Task<(bool success, string message)> ChangePasswordAsync(int userId, string oldPassword, string newPassword)
         {
