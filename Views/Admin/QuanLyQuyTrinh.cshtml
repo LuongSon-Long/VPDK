@@ -1,5 +1,6 @@
 ﻿@{
     ViewData["Title"] = "Quản trị quy trình";
+    var currentUsername = Context.Session.GetString("Username") ?? "";
 }
 
 <style>
@@ -178,6 +179,7 @@
 
 @section Scripts {
     <script>
+        const CURRENT_USERNAME = '@currentUsername'.trim().toLowerCase();
         let currentQuyTrinhId = 0;
         let listStepsData = [];
 
@@ -201,21 +203,29 @@
                 }
                 list.forEach(qt => {
                     const activeClass = (currentQuyTrinhId === qt.id) ? 'active bg-light text-primary' : '';
+
+                    // 👉 TẠO NÚT XÓA DỰA TRÊN QUYỀN ADMIN
+                    const btnXoaQuyTrinh = (CURRENT_USERNAME.toLowerCase() === 'admin')
+                        ? `<button class="btn btn-link text-danger p-2 w-100 h-100 border-0 btn-delete-qt"
+                                           onclick="event.stopPropagation(); deleteQuyTrinh(${qt.id})" title="Xóa quy trình này">
+                                       <i class="bi bi-trash"></i>
+                                   </button>`
+                        : `<button class="btn btn-link text-danger p-2 w-100 h-100 border-0 btn-delete-qt opacity-25 pe-none"
+                                           title="Chỉ tài khoản admin mới có quyền xóa">
+                                       <i class="bi bi-lock-fill"></i>
+                                   </button>`;
+
                     const row = `
-                        <div class="list-group-item d-flex justify-content-between align-items-center p-0 overflow-hidden ${activeClass}" id="qt_row_${qt.id}">
-                            <div class="flex-grow-1 p-3" style="cursor:pointer" onclick="loadWorkflow(${qt.id})">
-                                <div class="fw-bold text-dark">${qt.tenQuyTrinh}</div>
-                                <small class="text-muted">ID: ${qt.id} | ${qt.loaiQuyTrinh || ''}</small>
-                            </div>
-                            <div class="border-start h-100 d-flex align-items-center justify-content-center" style="width: 50px; background: #fff5f5;">
-                                <button class="btn btn-link text-danger p-2 w-100 h-100 border-0 btn-delete-qt"
-                                        onclick="event.stopPropagation(); deleteQuyTrinh(${qt.id})"
-                                        title="Xóa quy trình này">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `;
+                                <div class="list-group-item d-flex justify-content-between align-items-center p-0 overflow-hidden ${activeClass}" id="qt_row_${qt.id}">
+                                    <div class="flex-grow-1 p-3" style="cursor:pointer" onclick="loadWorkflow(${qt.id})">
+                                        <div class="fw-bold text-dark">${qt.tenQuyTrinh}</div>
+                                        <small class="text-muted">ID: ${qt.id} | ${qt.loaiQuyTrinh || ''}</small>
+                                    </div>
+                                    <div class="border-start h-100 d-flex align-items-center justify-content-center" style="width: 50px; background: #fff5f5;">
+                                        ${btnXoaQuyTrinh}
+                                    </div>
+                                </div>
+                            `;
                     container.append(row);
                 });
             } catch (error) {
@@ -231,63 +241,68 @@
 
             try {
                 const data = await callApi(`/api/admin/QuyTrinh/${id}/details`);
-                // data có thể là null hoặc { steps: [], transitions: [] }
                 listStepsData = data?.steps || [];
+
                 let html = `<div class="d-flex justify-content-between align-items-center mb-4">
-                                <h4 class="fw-bold text-primary m-0">LUỒNG XỬ LÝ HỒ SƠ</h4>
-                                <button class="btn btn-success" onclick="openModalStep(${id})">THÊM BƯỚC MỚI</button>
-                            </div>`;
+                                        <h4 class="fw-bold text-primary m-0">LUỒNG XỬ LÝ HỒ SƠ</h4>
+                                        <button class="btn btn-success fw-bold" onclick="openModalStep(${id})">
+                                            <i class="bi bi-plus-circle me-1"></i> THÊM BƯỚC MỚI
+                                        </button>
+                                    </div>`;
+
                 if (listStepsData.length === 0) {
                     html += `<div class="alert alert-info text-center">Chưa có bước xử lý nào. Hãy thêm bước đầu tiên.</div>`;
                 } else {
                     listStepsData.forEach(step => {
                         let transitions = (data?.transitions || []).filter(t => t.idBuocQuyTrinh === step.id);
+
+                        // 👉 NÚT XÓA BƯỚC CHÍNH (Bên góc phải)
+                        const btnXoaBuoc = (CURRENT_USERNAME === 'admin')
+                            ? `<button class="btn btn-sm btn-white text-danger" onclick="deleteStep(${step.id})">Xóa</button>`
+                            : `<button class="btn btn-sm btn-light text-muted opacity-50 pe-none" title="Chỉ admin mới được xóa"><i class="bi bi-lock-fill me-1"></i>Xóa</button>`;
+
+                        // 👉 XỬ LÝ NÚT XÓA NHẢY BƯỚC BẰNG TEXT RÕ RÀNG
+                        let transitionsHtml = '';
+                        transitions.forEach(tr => {
+                            let next = listStepsData.find(s => s.id === tr.idBuocTiepTheo);
+                            let nextName = next ? next.tenBuocQt : "KẾT THÚC";
+
+                            let btnXoaNhayBuoc = (CURRENT_USERNAME === 'admin')
+                                ? `<span class="badge bg-danger ms-2" style="cursor: pointer;" onclick="deleteNhayBuoc(${tr.id})" title="Xóa luồng này">Xóa</span>`
+                                : `<span class="badge bg-secondary ms-2 opacity-50" title="Chỉ admin mới được xóa"><i class="bi bi-lock-fill"></i></span>`;
+
+                            transitionsHtml += `
+                                        <div class="transition-badge shadow-sm">
+                                            <span>${tr.tenBuocChuyen} ➔ <b>${nextName}</b></span>
+                                            ${btnXoaNhayBuoc}
+                                        </div>`;
+                        });
+
                         html += `
-                        <div class="step-node shadow-sm mb-4">
-                            <div class="card step-card border-0">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="fw-bold mb-0">
-                                            <span class="badge bg-dark me-2">ID: ${step.id}</span> ${step.tenBuocQt}
-                                        </h5>
-                                        <div class="btn-group border rounded">
-                                            <button class="btn btn-sm btn-white text-primary border-end" onclick="openModalConnect(${step.id})">Nối</button>
-                                            <button class="btn btn-sm btn-white text-danger" onclick="deleteStep(${step.id})">Xóa</button>
+                                <div class="step-node shadow-sm mb-4">
+                                    <div class="card step-card border-0">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <h5 class="fw-bold mb-0">
+                                                    <span class="badge bg-dark me-2">ID: ${step.id}</span> ${step.tenBuocQt}
+                                                </h5>
+                                                <div class="btn-group border rounded">
+                                                    <button class="btn btn-sm btn-white text-primary border-end fw-bold" onclick="openModalConnect(${step.id})">Nối bước</button>
+                                                    ${btnXoaBuoc}
+                                                </div>
+                                            </div>
+                                            <div class="pt-2 border-top">
+                                                ${transitionsHtml}
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="pt-2 border-top">
-                                        ${transitions.map(tr => {
-                                            let next = listStepsData.find(s => s.id === tr.idBuocTiepTheo);
-                                            let nextName = next ? next.tenBuocQt : "KẾT THÚC (hệ thống)";
-                                            return `
-                                            <div class="transition-badge shadow-sm">
-                                                <span>${tr.tenBuocChuyen} ➔ <b>${nextName}</b></span>
-                                                <i class="bi bi-x-circle-fill text-danger ms-2"
-                                                   style="cursor: pointer; font-size: 1rem;"
-                                                   onclick="deleteNhayBuoc(${tr.id})"
-                                                   title="Xóa hướng đi này"></i>
-                                            </div>`;
-                                        }).join('')}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>`;
+                                </div>`;
                     });
                 }
                 $('#workflowContainer').html(html);
             } catch (error) {
                 console.error(error);
-                // Nếu lỗi 404 (chưa có dữ liệu) thì vẫn hiển thị form thêm bước
-                if (error.message.includes('404')) {
-                    let html = `<div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h4 class="fw-bold text-primary m-0">LUỒNG XỬ LÝ HỒ SƠ</h4>
-                                    <button class="btn btn-success" onclick="openModalStep(${id})">THÊM BƯỚC MỚI</button>
-                                </div>
-                                <div class="alert alert-info text-center">Chưa có bước xử lý nào. Hãy thêm bước đầu tiên.</div>`;
-                    $('#workflowContainer').html(html);
-                } else {
-                    $('#workflowContainer').html('<div class="alert alert-danger">Lỗi tải dữ liệu quy trình</div>');
-                }
+                $('#workflowContainer').html('<div class="alert alert-danger">Lỗi tải dữ liệu quy trình, vui lòng thử lại!</div>');
             }
         }
 
@@ -370,9 +385,10 @@
         function openModalConnect(fromStepId) {
             $('#conn_from_id').val(fromStepId);
             $('#conn_name').val('');
-            let options = '<option value="0">-- KẾT THÚC --</option>';
+            let options = '<option value="0">-- Bước tiếp theo --</option>';
             listStepsData.forEach(s => {
-                if (s.id !== fromStepId) options += `<option value="${s.id}">${s.tenBuocQt}</option>`;
+                //if (s.id !== fromStepId) options += `<option value="${s.id}">${s.tenBuocQt}</option>`; //<< LOẠI TRỪ CHÍNH BƯỚC ĐANG CHỌN
+                options += `<option value="${s.id}">${s.tenBuocQt}</option>`;
             });
             $('#conn_target_id').html(options);
             $('#modalConnect').modal('show');

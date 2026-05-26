@@ -87,6 +87,12 @@
                     <input type="number" id="bv2_NamDoDac" class="form-control form-control-sm"
                            value="" />
                 </div>
+                <div class="col-md-6">
+                    <label class="small fw-bold">Đơn vị đo đạc:</label>
+                    <select id="bv2_DonViDoDac" class="form-select form-select-sm">
+                        <option value="">-- Chọn đơn vị --</option>
+                    </select>
+                </div>
                 <div class="col-md-4">
                     <label class="small fw-bold">Người đo / Kiểm tra:</label>
                     <select id="bv2_IDNguoiDo" class="form-select form-select-sm">
@@ -144,6 +150,9 @@
                     <i class="bi bi-trash"></i> Xóa bản vẽ
                 </button>
                 <div>
+                    <button type="button" class="btn btn-info btn-sm text-dark fw-bold" id="bv2_BtnDuaVaoKhay" onclick="bv2_DuaVaoKhayNhoTam()">
+                        <i class="bi bi-clipboard-plus-fill"></i> Đưa vào DS tạm
+                    </button>
                     <button type="button" class="btn btn-warning btn-sm me-2 text-dark d-none"
                             id="bv2_BtnDonGia" onclick="bv2_MoModalDonGia()">
                         <i class="bi bi-currency-dollar"></i> Đơn giá
@@ -318,6 +327,10 @@
     // ÁP DỤNG QUYỀN LÊN UI
     // ================================================================
     function bv2_ApDungQuyen() {
+        const idBanVe = parseInt($('#bv2_ID').val()) || 0;
+        const isPaid = bv2_PaidIds.includes(idBanVe);
+        if (isPaid) return;
+
         if (bv2_CanAction) {
             $('#bv2_NoPermission').addClass('d-none');
             $('#bv2_BtnArea').removeClass('d-none');
@@ -460,16 +473,56 @@
     // LOAD CÁN BỘ → GET /api/dodac/dropdown/taikhoan-by-donvi/{idDonVi}
     // ================================================================
     async function bv2_LoadCanBo() {
-        if (!bv2_IDDonVi) return;
+        const idTinh = $('#bv2_IDTinh').val();
+        const $select = $('#bv2_DonViDoDac');
+        $select.html('<option value="">Đang tải...</option>');
         try {
-            const data = await apiGet(`/api/dodac/dropdown/taikhoan-by-donvi/${bv2_IDDonVi}`);
+            let data = [];
+            if (idTinh) {
+                data = await apiGet(`/api/dodac/dropdown/donvi-by-tinh/${idTinh}`);
+            }
+            let opts = '<option value="">-- Chọn đơn vị --</option>';
+            (data || []).forEach(d => {
+                opts += `<option value="${d.tenDonVi || d.ten}">${d.tenDonVi || d.ten}</option>`;
+            });
+            opts += `
+                    <option value="Đơn vị tư vấn">Đơn vị tư vấn</option>
+                    <option value="Đơn vị khác">Đơn vị khác</option>
+                `;
+            $select.html(opts);
+        } catch (e) {
+            console.error('Lỗi load đơn vị đo đạc:', e);
+            $select.html('<option value="">-- Lỗi tải --</option>');
+        }
+
+
+        // 1. Lấy tên đơn vị đăng nhập từ Session (chuỗi an toàn)
+        const sessionDonViName = '@Html.Raw(Context.Session.GetString("DonViCongTac")?.Trim() ?? "")';
+        let myDonViId = 0;
+
+        // 2. Dò tìm ID đơn vị của tài khoản đăng nhập thông qua Tên
+        if (sessionDonViName) {
+            try {
+                const dsDonVi = await apiGet('/api/dodac/dropdown/all-donvi');
+                const match = (dsDonVi || []).find(d => d.ten && d.ten.trim().toLowerCase() === sessionDonViName.toLowerCase());
+                if (match) myDonViId = match.id;
+            } catch (e) { }
+        }
+
+        // 3. Ưu tiên lấy ID đơn vị của tài khoản, nếu không có mới dùng ID đơn vị của hồ sơ (bv2_IDDonVi)
+        const targetDonViId = myDonViId > 0 ? myDonViId : bv2_IDDonVi;
+
+        if (!targetDonViId) return;
+
+        try {
+            const data = await apiGet(`/api/dodac/dropdown/taikhoan-by-donvi/${targetDonViId}`);
             let opts = '<option value="">-- Chọn cán bộ --</option>';
             (data || []).forEach(cb => {
                 // DropdownDto: { id, ten }
                 opts += `<option value="${cb.id}">${cb.ten}</option>`;
             });
             $('#bv2_IDNguoiDo, #bv2_IDNguoiKy').html(opts);
-        } catch(e) { console.error('bv2_LoadCanBo:', e); }
+        } catch (e) { console.error('bv2_LoadCanBo:', e); }
     }
 
     // ================================================================
@@ -604,7 +657,8 @@
             if (!d) return;
 
             $('#bv2_ID').val(d.id);
-            $('#bv2_IDDangKyDoDac').val(d.iDDangKyDoDac || bv2_IDHoSo);
+            // Bổ sung đọc nhiều định dạng key JSON do Entity Framework sinh ra
+            $('#bv2_IDDangKyDoDac').val(d.iDDangKyDoDac || d.iddangKyDoDac || d.idDangKyDoDac || bv2_IDHoSo);
             $('#bv2_TenCSD').val(d.tenCSD || '');
             $('#bv2_DiaChiThuaDat').val(d.diaChiThuaDat || '');
             $('#bv2_ToBD').val(d.toBD || '');
@@ -616,21 +670,34 @@
             $('#bv2_SoVB').val(d.soVB || '');
             $('#bv2_GhiChu').val(d.ghiChu || '');
             $('#bv2_TrangThai').val(d.trangThai || '');
-            $('#bv2_IDNguoiDo').val(d.iDNguoiDo || '');
-            $('#bv2_IDNguoiKy').val(d.iDNguoiKy || '');
-
-            // Ngày: BanVeDto trả DateTime? → formatDisplayDate từ Index.cshtml
-            $('#bv2_NgayLap').val(d.ngayLap     ? formatDisplayDate(d.ngayLap)     : '');
-            $('#bv2_NgayVB').val(d.ngayVB       ? formatDisplayDate(d.ngayVB)      : '');
+            $('#bv2_IDNguoiDo').val(d.iDNguoiDo || d.idnguoiDo || d.idNguoiDo || '');
+            $('#bv2_IDNguoiKy').val(d.iDNguoiKy || d.idnguoiKy || d.idNguoiKy || '');
+            $('#bv2_DonViDoDac').val(d.donViDoDac || '');
+            $('#bv2_NgayLap').val(d.ngayLap ? formatDisplayDate(d.ngayLap) : '');
+            $('#bv2_NgayVB').val(d.ngayVB ? formatDisplayDate(d.ngayVB) : '');
             $('#bv2_NgayTrinhKy').val(d.ngayTrinhKy ? formatDisplayDate(d.ngayTrinhKy) : '');
-            $('#bv2_NgayKy').val(d.ngayKy       ? formatDisplayDate(d.ngayKy)      : '');
+            $('#bv2_NgayKy').val(d.ngayKy ? formatDisplayDate(d.ngayKy) : '');
 
-            // Load xã theo tỉnh rồi set giá trị
-            if (d.iDTinh) {
-                $('#bv2_IDTinhSel').val(d.iDTinh);
-                await bv2_LoadXaTheoTinh(d.iDTinh, d.iDXa);
+            // [ĐÃ SỬA]: Ép đúng ID Tỉnh / Xã
+            const idTinh = d.iDTinh || d.idtinh || d.idTinh;
+            const idXa = d.iDXa || d.idxa || d.idXa;
+            if (idTinh) {
+                $('#bv2_IDTinhSel').val(idTinh);
+                await bv2_LoadXaTheoTinh(idTinh, idXa);
             }
-        } catch(e) {
+            // Nếu đã thu hoặc không có quyền sửa (bv2_CanAction = false), thì khóa nút
+            const isPaid = bv2_PaidIds.includes(d.id);            
+            const shouldDisable = isPaid || !bv2_CanAction;
+            $('#bv2_BtnSave').prop('disabled', shouldDisable);
+            $('#bv2_BtnDelete').prop('disabled', shouldDisable);
+            $('#bv2_BtnLaySo').prop('disabled', shouldDisable);
+            if (isPaid) {
+                $('#bv2_FormWrapper input, #bv2_FormWrapper select, #bv2_FormWrapper textarea')
+                    .prop('disabled', true);
+            } else {
+                bv2_ApDungQuyen(); 
+            }
+        } catch (e) {
             alert('Lỗi tải chi tiết bản vẽ: ' + e.message);
         }
     }
@@ -650,6 +717,7 @@
         $('#bv2_TrangThai').val('Chưa lập bản vẽ');
         $('#bv2_BtnDonGia').addClass('d-none');
         $('.bv2-item').removeClass('active');
+        $('#bv2_DonViDoDac').val('');
 
         // Set tỉnh/xã từ hồ sơ gốc
         const hs = (allHoSoData || []).find(h => h.id === bv2_IDHoSo);
@@ -657,6 +725,14 @@
             $('#bv2_IDTinhSel').val(hs.idTinh);
             bv2_LoadXaTheoTinh(hs.idTinh, hs.idXa);
         }
+        // Mở khóa input
+        $('#bv2_BtnSave').prop('disabled', false);
+        $('#bv2_BtnDelete').prop('disabled', false);
+        $('#bv2_BtnLaySo').prop('disabled', false);        
+        $('#bv2_FormWrapper input, #bv2_FormWrapper select, #bv2_FormWrapper textarea')
+            .prop('disabled', false);
+        bv2_ApDungQuyen();
+
         $('#bv2_TenCSD').focus();
     }
 
@@ -680,33 +756,55 @@
     //                ngayTrinhKyStr, iDNguoiKy, ngayKyStr, ghiChu }
     // ================================================================
     async function bv2_Save() {
+        const idNguoiDo = parseInt($('#bv2_IDNguoiDo').val()) || null;
+        const idNguoiKy = parseInt($('#bv2_IDNguoiKy').val()) || null;
+        const idTinh = parseInt($('#bv2_IDTinhSel').val()) || null;
+        const idXa = parseInt($('#bv2_IDXa').val()) || null;
+
         const model = {
-            id:             parseInt($('#bv2_ID').val()) || 0,
-            iDDangKyDoDac:  bv2_IDHoSo,
-            tenCSD:         $('#bv2_TenCSD').val(),
-            diaChiThuaDat:  $('#bv2_DiaChiThuaDat').val(),
-            iDTinh:         parseInt($('#bv2_IDTinhSel').val()) || null,
-            iDXa:           parseInt($('#bv2_IDXa').val())      || null,
-            toBD:           $('#bv2_ToBD').val(),
-            soHieuThua:     $('#bv2_SoHieuThua').val(),
-            dienTich:       $('#bv2_DienTich').val(),
-            loaiBanVe:      $('#bv2_LoaiBanVe').val(),
-            namDoDac:       parseInt($('#bv2_NamDoDac').val())       || null,
-            soHieuBanVe:    parseInt($('#bv2_SoHieuBanVe').val())    || null,
-            iDNguoiDo:      parseInt($('#bv2_IDNguoiDo').val())      || null,
-            soVB:           $('#bv2_SoVB').val(),
-            ngayLapStr:     $('#bv2_NgayLap').val(),
-            ngayVBStr:      $('#bv2_NgayVB').val(),
+            id: parseInt($('#bv2_ID').val()) || 0,
+
+            iDDangKyDoDac: bv2_IDHoSo,
+            iddangKyDoDac: bv2_IDHoSo, // Bổ sung key map chuẩn EF Core
+
+            tenCSD: $('#bv2_TenCSD').val(),
+            diaChiThuaDat: $('#bv2_DiaChiThuaDat').val(),
+
+            iDTinh: idTinh,
+            idtinh: idTinh,     // Bổ sung key map chuẩn EF Core
+
+            iDXa: idXa,
+            idxa: idXa,       // Bổ sung key map chuẩn EF Core
+
+            toBD: $('#bv2_ToBD').val(),
+            soHieuThua: $('#bv2_SoHieuThua').val(),
+            dienTich: $('#bv2_DienTich').val(),
+            loaiBanVe: $('#bv2_LoaiBanVe').val(),
+            namDoDac: parseInt($('#bv2_NamDoDac').val()) || null,
+            soHieuBanVe: parseInt($('#bv2_SoHieuBanVe').val()) || null,
+
+            // [ĐÃ SỬA]: Gửi đủ định dạng của trường ID Người đo
+            iDNguoiDo: idNguoiDo,
+            idnguoiDo: idNguoiDo,
+            idNguoiDo: idNguoiDo,
+
+            soVB: $('#bv2_SoVB').val(),
+            ngayLapStr: $('#bv2_NgayLap').val(),
+            ngayVBStr: $('#bv2_NgayVB').val(),
             ngayTrinhKyStr: $('#bv2_NgayTrinhKy').val(),
-            iDNguoiKy:      parseInt($('#bv2_IDNguoiKy').val())      || null,
-            ngayKyStr:      $('#bv2_NgayKy').val(),
-            ghiChu:         $('#bv2_GhiChu').val()
+
+            iDNguoiKy: idNguoiKy,
+            idnguoiKy: idNguoiKy,
+            idNguoiKy: idNguoiKy,
+
+            ngayKyStr: $('#bv2_NgayKy').val(),
+            donViDoDac: $('#bv2_DonViDoDac').val(),
+            ghiChu: $('#bv2_GhiChu').val()
         };
 
         try {
             const res = await apiPost('/api/dodac/banve', model);
             if (res && res.success) {
-                // Gán lại ID nếu vừa tạo mới
                 if (model.id === 0 && res.id) {
                     $('#bv2_ID').val(res.id);
                     $('#bv2_BtnDonGia').removeClass('d-none');
@@ -716,7 +814,7 @@
             } else {
                 alert('Lỗi: ' + (res?.message || 'Không xác định'));
             }
-        } catch(e) {
+        } catch (e) {
             alert('Lỗi kết nối: ' + e.message);
         }
     }
@@ -883,6 +981,32 @@
         }
     }
 
+    // ================================================================
+    // ĐẨY DỮ LIỆU VÀO KHAY NHỚ TẠM TOÀN CỤC
+    // ================================================================
+    function bv2_DuaVaoKhayNhoTam() {
+        const idBanVe = parseInt($('#bv2_ID').val()) || 0;
+        if (idBanVe === 0) {
+            alert('Vui lòng lưu bản vẽ trước khi đưa vào khay!');
+            return;
+        }
+
+        let listId = JSON.parse(localStorage.getItem('khay_banve_ids')) || [];
+        if (listId.includes(idBanVe)) {
+            alert('Bản vẽ này đã nằm trong khay!');
+            return;
+        }
+
+        listId.push(idBanVe);
+        localStorage.setItem('khay_banve_ids', JSON.stringify(listId));
+
+        // Gọi hàm cập nhật giao diện ở Index.cshtml
+        if (typeof capNhatGiaoDienKhayNho === "function") {
+            capNhatGiaoDienKhayNho();
+        }
+
+        alert('Đã đưa bản vẽ vào khay!');
+    }
     // ================================================================
     // HELPER: xóa số tiền
     // ================================================================

@@ -61,7 +61,6 @@
     </div>
 </div>
 
-<!-- Modal thêm/sửa tài khoản -->
 <div class="modal fade" id="modalTaiKhoan" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content border-0 shadow-lg">
@@ -85,11 +84,18 @@
                             <label class="form-label fw-bold">Họ và Tên</label>
                             <input type="text" class="form-control" id="hoVaTen">
                         </div>
-                        <div class="col-md-6">
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-danger">Thuộc Tỉnh/Thành phố *</label>
+                            <select class="form-select border-danger" id="idTinh" required>
+                                <option value="">-- Đang tải danh sách tỉnh --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label fw-bold">Chức vụ</label>
                             <select class="form-select" id="chucVuId"></select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label fw-bold">Đơn vị công tác</label>
                             <select class="form-select" id="donViId"></select>
                         </div>
@@ -108,7 +114,6 @@
     </div>
 </div>
 
-<!-- Modal reset password -->
 <div class="modal fade" id="resetPassModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -164,47 +169,85 @@
             }
             data.forEach(item => {
                 let row = `
-                    <tr>
-                        <td><b class="text-primary">${item.tenTaiKhoan || ''}</b></td>
-                        <td>${item.hoVaTen || ''}</td>
-                        <td>
-                            <div class="small fw-bold text-dark">${item.tenChucVu || ''}</div>
-                            <div class="small text-muted">${item.tenDonViCongTac || ''}</div>
-                        </td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-outline-primary" onclick="showEditModal(${item.id})" title="Sửa & Phân quyền">
-                                <i class="bi bi-pencil-square"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning mx-1" onclick="showResetModal(${item.id}, '${item.tenTaiKhoan}')" title="Đặt lại mật khẩu">
-                                <i class="bi bi-key-fill"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${item.id})" title="Xóa tài khoản">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
+                            <tr>
+                                <td><b class="text-primary">${item.tenTaiKhoan || ''}</b></td>
+                                <td>${item.hoVaTen || ''}</td>
+                                <td>
+                                    <div class="small fw-bold text-dark">${item.tenChucVu || ''}</div>
+                                    <div class="small text-muted">${item.tenDonViCongTac || ''}</div>
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="showEditModal(${item.id})" title="Sửa & Phân quyền">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning mx-1" onclick="showResetModal(${item.id}, '${item.tenTaiKhoan}')" title="Đặt lại mật khẩu">
+                                        <i class="bi bi-key-fill"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${item.id})" title="Xóa tài khoản">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
                 tbody.append(row);
             });
         }
 
-        // Load dữ liệu danh mục (chức vụ, đơn vị, module)
+        // Load dữ liệu danh mục (chức vụ, đơn vị, module, TỈNH)
         async function loadMasterData() {
             try {
-                const [chucVu, donVi, modules] = await Promise.all([
+                const [chucVu, modules, tinhs] = await Promise.all([
                     callApi('/api/admin/DanhMuc/ChucVu'),
-                    callApi('/api/admin/DanhMuc/DonViCongTac'),
-                    callApi('/api/admin/Module')
+                    callApi('/api/admin/Module'),
+                    callApi('/api/dodac/dropdown/all-tinh') 
                 ]);
+
                 populateSelect('#chucVuId', chucVu, 'id', 'tenChucVu');
-                populateSelect('#donViId', donVi, 'id', 'tenDonVi');
+                populateSelect('#idTinh', tinhs, 'id', 'ten');
+                $('#donViId').html('<option value="">-- Chọn Tỉnh/TP trước --</option>');
+
                 allModules = modules;
                 renderModuleCheckboxes(modules, []);
             } catch (error) {
                 console.error(error);
-                alert('Lỗi tải dữ liệu danh mục');
+                alert('Lỗi tải dữ liệu danh mục ban đầu');
             }
         }
+
+        async function loadDonViTheoTinh_TaiKhoan(idTinh, selectedDonViId = null) {
+            const $donVi = $('#donViId');
+            if (!idTinh) {
+                $donVi.html('<option value="">-- Chọn Tỉnh/TP trước --</option>');
+                return;
+            }
+
+            $donVi.html('<option value="">Đang tải danh sách...</option>');
+            try {
+                const data = await callApi(`/api/dodac/dropdown/donvi-by-tinh/${idTinh}`);
+                let opts = '<option value="">-- Chọn Đơn vị công tác --</option>';
+
+                if (data && data.length > 0) {
+                    data.forEach(item => {
+                        const tenHienThi = item.tenDonVi || item.ten || 'Chưa có tên';
+                        opts += `<option value="${item.id}">${tenHienThi}</option>`;
+                    });
+                } else {
+                    opts = '<option value="">-- Không có đơn vị nào thuộc Tỉnh này --</option>';
+                }
+
+                $donVi.html(opts);
+                if (selectedDonViId) {
+                    $donVi.val(selectedDonViId);
+                }
+            } catch (error) {
+                $donVi.html('<option value="">-- Lỗi tải danh sách --</option>');
+            }
+        }
+
+        $('#idTinh').change(function () {
+            const idTinh = $(this).val();
+            loadDonViTheoTinh_TaiKhoan(idTinh);
+        });
 
         function populateSelect(selector, data, idField, nameField) {
             const select = $(selector);
@@ -227,13 +270,13 @@
             modules.forEach(module => {
                 const checked = selectedIds.includes(module.id) ? 'checked' : '';
                 container.append(`
-                    <div class="col-md-4 mb-2">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input module-checkbox" type="checkbox" id="mod_${module.id}" value="${module.id}" ${checked}>
-                            <label class="form-check-label" for="mod_${module.id}">${module.tenModule}</label>
-                        </div>
-                    </div>
-                `);
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input module-checkbox" type="checkbox" id="mod_${module.id}" value="${module.id}" ${checked}>
+                                    <label class="form-check-label" for="mod_${module.id}">${module.tenModule}</label>
+                                </div>
+                            </div>
+                        `);
             });
         }
 
@@ -244,6 +287,7 @@
             $('#userId').val('0');
             $('#tenTaiKhoan').prop('readonly', false);
             $('#divPassword').show();
+            $('#donViId').html('<option value="">-- Chọn Tỉnh/TP trước --</option>')
             renderModuleCheckboxes(allModules, []);
             $('#modalTaiKhoan').modal('show');
         }
@@ -256,9 +300,12 @@
                 $('#userId').val(user.id);
                 $('#tenTaiKhoan').val(user.tenTaiKhoan).prop('readonly', true);
                 $('#hoVaTen').val(user.hoVaTen || '');
+                
                 $('#chucVuId').val(user.idchucVu || '');
                 $('#donViId').val(user.iddonViCongTac || '');
                 $('#divPassword').hide();
+                $('#idTinh').val(user.idTinh || '');
+                await loadDonViTheoTinh_TaiKhoan(user.idTinh, user.iddonViCongTac);
                 renderModuleCheckboxes(allModules, user.userModules || []);
                 $('#modalTaiKhoan').modal('show');
             } catch (error) {
@@ -267,11 +314,17 @@
         }
 
         // Lưu (thêm hoặc sửa)
-        $('#btnSave').click(async function() {
+        $('#btnSave').click(async function () {
             const id = parseInt($('#userId').val());
             const tenTaiKhoan = $('#tenTaiKhoan').val().trim();
+            const idTinhVal = parseInt($('#idTinh').val()) || null;
+
             if (!tenTaiKhoan) {
                 alert('Tên đăng nhập không được trống');
+                return;
+            }
+            if (!idTinhVal) {
+                alert('Vui lòng chọn Tỉnh/Thành phố quản lý cho tài khoản này!');
                 return;
             }
             const matKhau = $('#matKhau').val();
@@ -280,12 +333,13 @@
                 return;
             }
             const selectedModules = [];
-            $('.module-checkbox:checked').each(function() { selectedModules.push(parseInt($(this).val())); });
+            $('.module-checkbox:checked').each(function () { selectedModules.push(parseInt($(this).val())); });
 
             const data = {
                 tenTaiKhoan: tenTaiKhoan,
                 matKhau: matKhau,
                 hoVaTen: $('#hoVaTen').val(),
+                idTinh: idTinhVal,
                 idchucVu: parseInt($('#chucVuId').val()) || null,
                 iddonViCongTac: parseInt($('#donViId').val()) || null,
                 selectedModules: selectedModules
@@ -322,7 +376,7 @@
             $('#resetUsername').text(username);
             $('#resetPassModal').modal('show');
         }
-        $('#btnConfirmReset').click(async function() {
+        $('#btnConfirmReset').click(async function () {
             try {
                 const response = await fetch(`/api/admin/TaiKhoan/${resetUserId}/reset-password`, { method: 'POST' });
                 if (response.ok) {
@@ -352,12 +406,12 @@
         }
 
         // Tìm kiếm
-        $('#searchInput').on('keyup', function() {
+        $('#searchInput').on('keyup', function () {
             currentSearchTerm = $(this).val();
             loadTaiKhoan();
         });
 
-        $(document).ready(function() {
+        $(document).ready(function () {
             loadMasterData();
             loadTaiKhoan();
         });
