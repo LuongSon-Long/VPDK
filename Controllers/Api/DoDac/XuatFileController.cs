@@ -39,5 +39,31 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
             string fileName = !string.IsNullOrEmpty(request.FileNameOut) ? request.FileNameOut : "HoSoThanhLy";
             return File(bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"{fileName}.docx");
         }
+
+        [HttpPost("excel-chitiet-ids")]
+        public async Task<IActionResult> XuatExcelChiTietIds([FromBody] XuatExcelTheoIdRequestDto request)
+        {
+            if (request.Ids == null || !request.Ids.Any())
+                return BadRequest("Danh sách bản vẽ rỗng.");
+
+            var bytes = await _xuatFileService.XuatExcelTheoListIdsAsync(request.Ids);
+            return File(bytes,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        $"DanhSach_BanVe_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
+        }
+
+        [HttpPost("excel-hoso-ids")] // Thêm đúng endpoint này để khớp với JS
+        public async Task<IActionResult> XuatExcelHoSoIds([FromBody] XuatExcelTheoIdRequestDto request)
+        {
+            if (request.Ids == null || !request.Ids.Any())
+                return BadRequest("Danh sách hồ sơ rỗng.");
+
+            // Gọi đúng service xử lý hồ sơ (đảm bảo service đã có hàm này)
+            var bytes = await _xuatFileService.XuatExcelHoSoTheoIdsAsync(request.Ids);
+
+            return File(bytes,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        $"DanhSach_HoSo_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
+        }
     }
 }

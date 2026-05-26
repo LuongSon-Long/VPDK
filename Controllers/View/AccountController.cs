@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using HeThongQuanLyVanPhong.Services;
+﻿using Azure;
 using HeThongQuanLyVanPhong.DTOs.Auth;
+using HeThongQuanLyVanPhong.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HeThongQuanLyVanPhong.Controllers.View
 {
@@ -33,15 +34,25 @@ namespace HeThongQuanLyVanPhong.Controllers.View
             }
 
             var result = await _authService.LoginAsync(new LoginRequestDto { TenTaiKhoan = tenTaiKhoan, MatKhau = matKhau });
+            
             if (result.Success && result.User != null)
             {
                 HttpContext.Session.SetInt32("UserId", result.User.Id);
-                HttpContext.Session.SetString("Username", result.User.TenTaiKhoan);
-                HttpContext.Session.SetString("FullName", result.User.HoVaTen);
-                HttpContext.Session.SetString("ChucVu", result.User.TenChucVu);
-                HttpContext.Session.SetString("DonViCongTac", result.User.TenDonViCongTac);
-               // HttpContext.Session.SetInt32("UserDonViId", result.User.IddonViCongTac ?? 0);
+                HttpContext.Session.SetString("Username", result.User.TenTaiKhoan ?? "");
+                HttpContext.Session.SetString("FullName", result.User.HoVaTen  ?? "");
+                HttpContext.Session.SetString("ChucVu", result.User.TenChucVu ?? "");
+                HttpContext.Session.SetString("DonViCongTac", result.User.TenDonViCongTac ?? "");
+                if (result.User.IdDonViCongTac.HasValue)
+                {
+                    HttpContext.Session.SetInt32("UserDonViId", result.User.IdDonViCongTac.Value);
+                }
+                if (result.User.IdTinh.HasValue)
+                {
+                    HttpContext.Session.SetInt32("UserTinhId", result.User.IdTinh.Value);
+                }
+                // HttpContext.Session.SetInt32("UserDonViId", result.User.IddonViCongTac ?? 0);               
                 return RedirectToAction("Index", "Home");
+
             }
             ViewBag.Error = result.Message ?? "Sai tên đăng nhập hoặc mật khẩu";
             return View();

@@ -14,9 +14,9 @@
         public int IDTaiKhoanDo { get; set; }
         public string? TenCanBo { get; set; }
         public int Tong { get; set; }
-        public int DaXong { get; set; }
-        public int DangLam { get; set; }
-        public int QuaHan { get; set; }
+        public int DaDoDac { get; set; }      
+        public int QuaHanDo { get; set; }      
+        public int DaTraKetQua { get; set; }
     }
 
     public class ThongKeBanVeDto
