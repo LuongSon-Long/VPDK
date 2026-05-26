@@ -59,7 +59,7 @@
                         <input type="text" class="form-control form-control-sm bg-light" id="fxl_SoHopDong" readonly />
                     </div>
                     <div class="col-md-3">
-                        <label class="small fw-bold">Ngày hợp đồng:</label>
+                        <label class="small fw-bold">Ngày đăng ký:</label>
                         <input type="text" class="form-control form-control-sm bg-light" id="fxl_NgayHopDong" readonly />
                     </div>
                 </div>
@@ -94,7 +94,7 @@
                     </div>
                     <div class="col-md-6 mt-1">
                         <label class="small fw-bold">
-                            <i class="bi bi-person-badge"></i> Giao người đo:
+                            <i class="bi bi-person-badge"></i> Người được giao xử lý:
                         </label>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text bg-light">
@@ -227,12 +227,37 @@
     </div>
 </div>
 
+@using Microsoft.AspNetCore.Http
+
 <script>
     // ============================================================
     // BIẾN TOÀN CỤC CỦA PARTIAL
     // ============================================================
     var fxl_IdBuocTiepTheo = 0;
-    var fxl_TenBuocChuyen  = '';
+    var fxl_TenBuocChuyen = '';
+
+    // Lấy thông tin tài khoản đang đăng nhập từ Session
+    const fxl_SessionDonViName = '@Html.Raw(Context.Session.GetString("DonViCongTac")?.Trim() ?? "")';
+    let fxl_SessionDonViId = parseInt('@Context.Session.GetInt32("IdDonViCongTac")') || 0;
+    let fxl_MyResolvedDonViId = 0; // Biến lưu ID thực tế sau khi dò tìm
+
+    // Hàm phụ trợ: Tự động tìm ID Đơn vị công tác của tài khoản
+    async function fxl_ResolveMyDonViId() {
+        if (fxl_MyResolvedDonViId > 0) return fxl_MyResolvedDonViId;
+        if (fxl_SessionDonViId > 0) {
+            fxl_MyResolvedDonViId = fxl_SessionDonViId;
+            return fxl_MyResolvedDonViId;
+        }
+        // Nếu rỗng ID nhưng có Tên đơn vị, tìm ID qua API
+        if (fxl_SessionDonViName) {
+            try {
+                const ds = await apiGet('/api/dodac/dropdown/all-donvi');
+                const match = (ds || []).find(d => d.ten && d.ten.trim().toLowerCase() === fxl_SessionDonViName.toLowerCase());
+                if (match) fxl_MyResolvedDonViId = match.id;
+            } catch (e) { }
+        }
+        return fxl_MyResolvedDonViId;
+    }
 
     // ============================================================
     // KHỞI TẠO — gọi từ openXuLy() trong Index
@@ -256,26 +281,28 @@
             $('#fxl_IDBuocQuyTrinh').val(hoSo.idBuocQuyTrinh);
 
             // Gán thông tin đăng ký
-            $('#fxl_NguoiDangKy').val(hoSo.nguoiDangKy   || '');
-            $('#fxl_CCCD').val(hoSo.cccd                  || '');
-            $('#fxl_SoDienThoai').val(hoSo.soDienThoai    || '');
-            $('#fxl_DiaChiThuaDat').val(hoSo.diaChiThuaDat|| '');
-            $('#fxl_TenTinh').val(hoSo.tenTinh            || '');
-            $('#fxl_TenXa').val(hoSo.tenXa                || '');
-            $('#fxl_SeriGCN').val(hoSo.seriGCN            || '');
-            $('#fxl_MucDichDangKy').val(hoSo.mucDichDangKy|| '');
-            $('#fxl_SoHopDong').val(hoSo.soHopDong        || '');
-            $('#fxl_NgayHopDong').val(hoSo.ngayHopDong    || '');
+            $('#fxl_NguoiDangKy').val(hoSo.nguoiDangKy || '');
+            $('#fxl_CCCD').val(hoSo.cccd || '');
+            $('#fxl_SoDienThoai').val(hoSo.soDienThoai || '');
+            $('#fxl_DiaChiThuaDat').val(hoSo.diaChiThuaDat || '');
+            $('#fxl_TenTinh').val(hoSo.tenTinh || '');
+            $('#fxl_TenXa').val(hoSo.tenXa || '');
+            $('#fxl_SeriGCN').val(hoSo.seriGCN || '');
+            $('#fxl_MucDichDangKy').val(hoSo.mucDichDangKy || '');
+            $('#fxl_SoHopDong').val(hoSo.soHopDong || '');
+            $('#fxl_NgayHopDong').val(hoSo.ngayHopDong || '');
 
-            // Gán thông tin xử lý — DateOnly từ API về dạng "2024-01-21"
+            // Gán thông tin xử lý
             $('#fxl_SoPhieuGiao').val(hoSo.soPhieuGiao || '');
-            $('#fxl_NgayGiao').val(hoSo.ngayGiao     ? formatDisplayDate(hoSo.ngayGiao)   : '');
+            $('#fxl_NgayGiao').val(hoSo.ngayGiao ? formatDisplayDate(hoSo.ngayGiao) : '');
             $('#fxl_NgayYeuCau').val(hoSo.ngayYeuCau ? formatDisplayDate(hoSo.ngayYeuCau) : '');
-            $('#fxl_NgayDo').val(hoSo.ngayDo         ? formatDisplayDate(hoSo.ngayDo)     : '');
-            $('#fxl_GhiChu').val(hoSo.ghiChu         || '');
+            $('#fxl_NgayDo').val(hoSo.ngayDo ? formatDisplayDate(hoSo.ngayDo) : '');
+            $('#fxl_GhiChu').val(hoSo.ghiChu || '');
 
-            // Load nhân viên theo đơn vị hồ sơ
-            await fxl_loadNhanVien(hoSo.idDonViCongTac, hoSo.idTaiKhoanDo);
+            // [ĐÃ SỬA]: Load nhân viên theo ĐƠN VỊ CỦA TÀI KHOẢN thay vì đơn vị của Hồ Sơ
+            const myDonViId = await fxl_ResolveMyDonViId();
+            const targetDonViForNhanVien = myDonViId > 0 ? myDonViId : hoSo.idDonViCongTac;
+            await fxl_loadNhanVien(targetDonViForNhanVien, hoSo.idTaiKhoanDo);
 
             // Kho datalist
             $('#fxl_listKho').html((khoList || []).map(k => `<option value="${k}">`).join(''));
@@ -284,12 +311,12 @@
             try {
                 const luuTru = await apiGet(`/api/dodac/luutru/by-hoso/${hoSoId}`);
                 if (luuTru && luuTru.id) {
-                    $('#fxl_Kho').val(luuTru.kho    || '');
-                    $('#fxl_Gia').val(luuTru.gia    || '');
-                    $('#fxl_Ngan').val(luuTru.ngan  || '');
+                    $('#fxl_Kho').val(luuTru.kho || '');
+                    $('#fxl_Gia').val(luuTru.gia || '');
+                    $('#fxl_Ngan').val(luuTru.ngan || '');
                     $('#fxl_SoHSLuu').val(luuTru.soHSLuu || '');
                 }
-            } catch {}
+            } catch { }
 
             // Load quy trình → render nút chuyển bước
             await fxl_loadQuyTrinh(hoSo.idQuyTrinh, hoSo.idBuocQuyTrinh, hoSo.trangThaiDo);
@@ -324,11 +351,10 @@
 
     // ============================================================
     // LOAD QUY TRÌNH → RENDER NÚT CHUYỂN BƯỚC + LEFT BUTTONS
-    // Dùng GET /api/admin/QuyTrinh/{id}/details rồi filter
     // ============================================================
-        async function fxl_loadQuyTrinh(idQuyTrinh, idBuocHienTai, trangThaiDo) {
+    async function fxl_loadQuyTrinh(idQuyTrinh, idBuocHienTai, trangThaiDo) {
         const container = $('#fxl_BtnGroupXuLy');
-        const leftDiv   = $('#fxl_LeftButtons');
+        const leftDiv = $('#fxl_LeftButtons');
 
         if (!idQuyTrinh || !idBuocHienTai) {
             container.html('<div class="alert alert-warning small p-1 mb-0">Chưa có quy trình xử lý.</div>');
@@ -342,12 +368,10 @@
                 return;
             }
 
-            // FIX 1: field đúng là "steps" và "transitions"
             const buocHT = (qt.steps || []).find(b => b.id == idBuocHienTai);
             const guidStep = buocHT?.guid || '';
             $('#fxl_GuidStep').val(guidStep);
 
-            // FIX 2: field đúng là "idBuocQuyTrinh" (không phải idBuocHienTai)
             const nhayBuocCuaBuocNay = (qt.transitions || [])
                 .filter(n => n.idBuocQuyTrinh == idBuocHienTai);
 
@@ -358,23 +382,21 @@
                 let btns = '<label class="small fw-bold d-block mb-2 text-muted">Thực hiện chuyển tiếp hồ sơ:</label>';
                 nhayBuocCuaBuocNay.forEach(n => {
                     btns += `<button type="button" class="btn btn-outline-danger btn-sm px-3 m-1 shadow-sm"
-                                onclick="fxl_openChonNguoiNhan(${n.idBuocTiepTheo}, '${(n.tenBuocChuyen || '').replace(/'/g, "\\'")}')">
-                                <i class="bi bi-arrow-right-circle"></i> ${n.tenBuocChuyen}
-                             </button>`;
+                                    onclick="fxl_openChonNguoiNhan(${n.idBuocTiepTheo}, '${(n.tenBuocChuyen || '').replace(/'/g, "\\'")}')">
+                                    <i class="bi bi-arrow-right-circle"></i> ${n.tenBuocChuyen}
+                                 </button>`;
                 });
                 container.html(btns);
             }
 
-            // FIX 3: guid là GUID dài, không phải "LuuTru"/"KetThuc"
-            // → dùng trangThaiDo hoặc tên bước để xác định
             leftDiv.empty();
             const tenBuoc = (buocHT?.tenBuocQt || '').toLowerCase();
             if (tenBuoc.includes('lưu trữ') || tenBuoc.includes('luu tru')) {
                 leftDiv.html(`<button class="btn btn-warning btn-sm fw-bold" onclick="fxl_thucThiLuuTru()">
-                    <i class="bi bi-archive"></i> LƯU TRỮ</button>`);
+                        <i class="bi bi-archive"></i> LƯU TRỮ</button>`);
             } else if (tenBuoc.includes('bàn giao') || tenBuoc.includes('kết quả') || tenBuoc.includes('ket qua')) {
                 leftDiv.html(`<button class="btn btn-danger btn-sm fw-bold" onclick="fxl_thucThiTraKQ()">
-                    <i class="bi bi-check2-circle"></i> TRẢ KẾT QUẢ</button>`);
+                        <i class="bi bi-check2-circle"></i> TRẢ KẾT QUẢ</button>`);
             }
 
         } catch (e) {
@@ -383,41 +405,41 @@
     }
 
     // ============================================================
-    // LƯU CHỈNH SỬA → PUT /api/dodac/hosododac/{id}
+    // LƯU CHỈNH SỬA
     // ============================================================
     async function fxl_Save() {
-        const id  = parseInt($('#fxl_HoSoID').val());
+        const id = parseInt($('#fxl_HoSoID').val());
         const btn = $('button[onclick="fxl_Save()"]');
         btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
 
         const body = {
             id,
-            soPhieuGiao:   $('#fxl_SoPhieuGiao').val(),
-            nguoiDangKy:   $('#fxl_NguoiDangKy').val(),
-            cccd:          $('#fxl_CCCD').val(),
-            soDienThoai:   $('#fxl_SoDienThoai').val(),
+            soPhieuGiao: $('#fxl_SoPhieuGiao').val(),
+            nguoiDangKy: $('#fxl_NguoiDangKy').val(),
+            cccd: $('#fxl_CCCD').val(),
+            soDienThoai: $('#fxl_SoDienThoai').val(),
             diaChiThuaDat: $('#fxl_DiaChiThuaDat').val(),
-            seriGCN:       $('#fxl_SeriGCN').val(),
+            seriGCN: $('#fxl_SeriGCN').val(),
             mucDichDangKy: $('#fxl_MucDichDangKy').val(),
-            ngayGiaoStr:   $('#fxl_NgayGiao').val(),
+            ngayGiaoStr: $('#fxl_NgayGiao').val(),
             ngayYeuCauStr: $('#fxl_NgayYeuCau').val(),
-            ngayDoStr:     $('#fxl_NgayDo').val(),
-            ghiChu:        $('#fxl_GhiChu').val(),
-            idTaiKhoanDo:  parseInt($('#fxl_IdTaiKhoanDo').val()) || null
+            ngayDoStr: $('#fxl_NgayDo').val(),
+            ghiChu: $('#fxl_GhiChu').val(),
+            idTaiKhoanDo: parseInt($('#fxl_IdTaiKhoanDo').val()) || null
         };
 
         try {
             const res = await fetch(`/api/dodac/hosododac/${id}`, {
-                method:  'PUT',
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(body)
+                body: JSON.stringify(body)
             });
             if (res.status === 401) { window.location.href = '/Account/Login'; return; }
             const json = await res.json();
             if (json.success) {
                 alert('Đã cập nhật thông tin thành công!');
                 $('#modalXuLy').modal('hide');
-                renderDanhSachHoSo(); // Refresh danh sách ở Index
+                renderDanhSachHoSo();
             } else {
                 alert('Lỗi: ' + (json.message || 'Không xác định'));
             }
@@ -429,7 +451,7 @@
     }
 
     // ============================================================
-    // TRẢ KẾT QUẢ → POST /api/dodac/hosododac/{id}/ketthuc
+    // TRẢ KẾT QUẢ
     // ============================================================
     async function fxl_thucThiTraKQ() {
         if (!confirm('Xác nhận đã hoàn thành và trả kết quả?')) return;
@@ -451,16 +473,15 @@
     }
 
     // ============================================================
-    // CHỌN NGƯỜI NHẬN → POST /api/dodac/hosododac/chuyen-buoc
+    // CHỌN NGƯỜI NHẬN
     // ============================================================
     async function fxl_openChonNguoiNhan(idBuocTiep, tenBuoc) {
         fxl_IdBuocTiepTheo = idBuocTiep;
-        fxl_TenBuocChuyen  = tenBuoc;
+        fxl_TenBuocChuyen = tenBuoc;
         $('#fxl_lblTenBuocChuyen').html(
             `<i class="bi bi-send-check"></i> Chuyển hồ sơ: ${tenBuoc}`
         );
 
-        // Load tất cả đơn vị vào dropdown
         try {
             const dsDonVi = await apiGet('/api/dodac/dropdown/all-donvi');
             let opts = '<option value="">-- Chọn đơn vị --</option>';
@@ -469,11 +490,13 @@
             });
             $('#fxl_cboDonViKhac').html(opts);
 
-            // Pre-select đơn vị của hồ sơ
-            const idDonViHoSo = $('#fxl_IDDonViCongTac').val();
-            if (idDonViHoSo) $('#fxl_cboDonViKhac').val(idDonViHoSo);
+            // [ĐÃ SỬA]: Pre-select ĐƠN VỊ TÀI KHOẢN thay vì đơn vị hồ sơ
+            const myDonViId = await fxl_ResolveMyDonViId();
+            const targetDonViId = myDonViId > 0 ? myDonViId : $('#fxl_IDDonViCongTac').val();
 
-            await fxl_loadTaiKhoanModal(idDonViHoSo);
+            if (targetDonViId) $('#fxl_cboDonViKhac').val(targetDonViId);
+
+            await fxl_loadTaiKhoanModal(targetDonViId);
             new bootstrap.Modal(document.getElementById('fxl_modalChonNguoiNhan')).show();
         } catch (e) {
             alert('Lỗi tải danh sách đơn vị: ' + e.message);
@@ -493,9 +516,11 @@
             });
         } else {
             $cbo.prop('disabled', true);
-            const idDonViHoSo = $('#fxl_IDDonViCongTac').val();
-            $cbo.val(idDonViHoSo);
-            await fxl_loadTaiKhoanModal(idDonViHoSo);
+            // [ĐÃ SỬA]: Trả về đơn vị tài khoản khi tắt nút toggle
+            const myDonViId = await fxl_ResolveMyDonViId();
+            const targetDonViId = myDonViId > 0 ? myDonViId : $('#fxl_IDDonViCongTac').val();
+            $cbo.val(targetDonViId);
+            await fxl_loadTaiKhoanModal(targetDonViId);
         }
     }
 
@@ -509,19 +534,18 @@
                 tbody.html('<tr><td colspan="4" class="text-center text-muted">Không có tài khoản nào</td></tr>');
                 return;
             }
-            // DropdownDto chỉ có id + ten, bỏ cột đơn vị
             tbody.html(data.map((item, i) => `
-                <tr>
-                    <td class="text-center">${i + 1}</td>
-                    <td>${item.ten}</td>
-                    <td class="text-muted small">—</td>
-                    <td class="text-center">
-                        <button class="btn btn-sm btn-primary"
-                            onclick="fxl_thucThiChuyen(${item.id}, '${(item.ten || '').replace(/'/g, "\\'")}')">
-                            Chọn
-                        </button>
-                    </td>
-                </tr>`).join(''));
+                    <tr>
+                        <td class="text-center">${i + 1}</td>
+                        <td>${item.ten}</td>
+                        <td class="text-muted small">—</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-primary"
+                                onclick="fxl_thucThiChuyen(${item.id}, '${(item.ten || '').replace(/'/g, "\\'")}')">
+                                Chọn
+                            </button>
+                        </td>
+                    </tr>`).join(''));
         } catch (e) {
             tbody.html(`<tr><td colspan="4" class="text-danger text-center small">Lỗi: ${e.message}</td></tr>`);
         }
@@ -530,16 +554,16 @@
     async function fxl_thucThiChuyen(idTaiKhoanNhan, tenNguoiNhan) {
         if (!confirm(`Bạn có chắc chắn muốn chuyển hồ sơ này cho [${tenNguoiNhan}] không?`)) return;
         const body = {
-            hoSoId:         parseInt($('#fxl_HoSoID').val()),
+            hoSoId: parseInt($('#fxl_HoSoID').val()),
             idBuocTiepTheo: fxl_IdBuocTiepTheo,
             idTaiKhoanNhan: idTaiKhoanNhan,
-            ghiChu:         $('#fxl_GhiChu').val()
+            ghiChu: $('#fxl_GhiChu').val()
         };
         try {
             const res = await fetch('/api/dodac/hosododac/chuyen-buoc', {
-                method:  'POST',
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(body)
+                body: JSON.stringify(body)
             });
             if (res.status === 401) { window.location.href = '/Account/Login'; return; }
             const json = await res.json();
@@ -557,7 +581,7 @@
     }
 
     // ============================================================
-    // LƯU TRỮ → POST /api/dodac/luutru/save
+    // LƯU TRỮ
     // ============================================================
     function fxl_thucThiLuuTru() {
         new bootstrap.Modal(document.getElementById('fxl_modalNhapLuuTru')).show();
@@ -568,16 +592,16 @@
         btn.prop('disabled', true).text('Đang lưu...');
         const body = {
             iDDangKyDoDac: parseInt($('#fxl_HoSoID').val()),
-            kho:           $('#fxl_Kho').val(),
-            gia:           $('#fxl_Gia').val(),
-            ngan:          $('#fxl_Ngan').val(),
-            soHSLuu:       $('#fxl_SoHSLuu').val()
+            kho: $('#fxl_Kho').val(),
+            gia: $('#fxl_Gia').val(),
+            ngan: $('#fxl_Ngan').val(),
+            soHSLuu: $('#fxl_SoHSLuu').val()
         };
         try {
             const res = await fetch('/api/dodac/luutru/save', {
-                method:  'POST',
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(body)
+                body: JSON.stringify(body)
             });
             if (res.status === 401) { window.location.href = '/Account/Login'; return; }
             const json = await res.json();
@@ -604,12 +628,12 @@
             const data = await apiGet(`/api/dodac/luutru/gia-by-kho/${encodeURIComponent(khoName)}`);
             $('#fxl_listGia').html((data || []).map(g => `<option value="${g}">`).join(''));
             $('#fxl_Gia').val('');
-        } catch {}
+        } catch { }
     }
 
     async function fxl_loadSoHSLuuTuDong() {
-        const kho  = $('#fxl_Kho').val();
-        const gia  = $('#fxl_Gia').val();
+        const kho = $('#fxl_Kho').val();
+        const gia = $('#fxl_Gia').val();
         const ngan = $('#fxl_Ngan').val();
         if (!kho || !gia || !ngan) return;
         try {
@@ -617,9 +641,9 @@
                 `/api/dodac/luutru/next-so-hsluu?kho=${encodeURIComponent(kho)}&gia=${encodeURIComponent(gia)}&ngan=${encodeURIComponent(ngan)}`
             );
             $('#fxl_SoHSLuu').val(res.soHSLuu || '');
-        } catch {}
+        } catch { }
     }
 
-    $(document).on('change', '#fxl_Kho',           function () { fxl_loadGiaTheoKho($(this).val()); });
+    $(document).on('change', '#fxl_Kho', function () { fxl_loadGiaTheoKho($(this).val()); });
     $(document).on('change', '#fxl_Kho, #fxl_Gia, #fxl_Ngan', function () { fxl_loadSoHSLuuTuDong(); });
 </script>
