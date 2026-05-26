@@ -47,6 +47,8 @@ public partial class DangKyDoDacBanVe
 
     public string? GhiChu { get; set; }
 
+    public string? DonViDoDac { get; set; }
+
     public virtual ICollection<DangKyDoDacBanVeThanhToan> DangKyDoDacBanVeThanhToans { get; set; } = new List<DangKyDoDacBanVeThanhToan>();
 
     public virtual DangKyDoDac? IddangKyDoDacNavigation { get; set; }
