@@ -1007,26 +1007,16 @@
             alert('Vui lòng lưu bản vẽ trước khi đưa vào khay!');
             return;
         }
+        const soHieu = $('#bv2_SoHieuBanVe').val() || '?';
+        const toThua = ($('#bv2_ToBD').val() || '?') + "/" + ($('#bv2_SoHieuThua').val() || '?');
+        const labelBanVe = `Tờ/Thửa: ${toThua} (Số BV: ${soHieu})`;
 
-        let listId = JSON.parse(localStorage.getItem('khay_banve_ids')) || [];
-        if (listId.includes(idBanVe)) {
-            alert('Bản vẽ này đã nằm trong khay!');
-            return;
+        // Gọi hàm chung ở Index.cshtml
+        if (typeof themVaoKhay === "function") {
+            themVaoKhay('banve', idBanVe, labelBanVe);
+            alert('Đã đưa bản vẽ vào khay!');
         }
-
-        listId.push(idBanVe);
-        localStorage.setItem('khay_banve_ids', JSON.stringify(listId));
-
-        // Gọi hàm cập nhật giao diện ở Index.cshtml
-        if (typeof capNhatGiaoDienKhayNho === "function") {
-            capNhatGiaoDienKhayNho();
-        }
-
-        alert('Đã đưa bản vẽ vào khay!');
     }
-    // ================================================================
-    // HELPER: xóa số tiền
-    // ================================================================
     function bv2_ClearTien() {
         $('#dg2_SoTien, #dg2_ChiPhiLaoDong, #dg2_TienLamTron').val('');
     }

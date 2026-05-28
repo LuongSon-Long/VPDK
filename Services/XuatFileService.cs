@@ -571,16 +571,26 @@ namespace HeThongQuanLyVanPhong.Services
         private void ReplaceInElement(OpenXmlElement element, Dictionary<string, string> replacements)
         {
             foreach (var paragraph in element.Descendants<Paragraph>())
+            {
                 MergeRunsInParagraph(paragraph);
-
+            }
             foreach (var text in element.Descendants<Text>())
             {
-                if (text.Text == null) continue;
+                if (string.IsNullOrEmpty(text.Text)) continue;
+
                 string newText = text.Text;
                 foreach (var kvp in replacements)
-                    newText = newText.Replace(kvp.Key, kvp.Value);
+                {
+                    if (newText.Contains(kvp.Key))
+                    {
+                        newText = newText.Replace(kvp.Key, kvp.Value ?? "");
+                    }
+                }
+
                 if (newText != text.Text)
+                {
                     text.Text = newText;
+                }
             }
         }
     }

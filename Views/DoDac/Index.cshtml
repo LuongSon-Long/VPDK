@@ -341,7 +341,7 @@
     <div class="mt-3 fw-bold text-success">Đang xử lý dữ liệu, vui lòng đợi...</div>
 </div>
 
-<div id="khayNhoTamWrapper" class="position-fixed bottom-0 start-0 m-3 shadow-lg rounded border bg-white" style="z-index: 1050; width: 300px; display: none;">
+<div id="khayNhoTamWrapper" class="position-fixed bottom-0 start-0 m-3 shadow-lg rounded border bg-white" style="z-index: 1050; width: 500px; display: none;">
     <div class="card-header bg-dark text-white p-0">
         <ul class="nav nav-tabs border-0" role="tablist">
             <li class="nav-item"><button class="nav-link active small fw-bold" data-bs-toggle="tab" data-bs-target="#tabKhayHoSo">Hồ sơ</button></li>
@@ -675,6 +675,7 @@
                 const isOwner      = hs.idTaiKhoan === SESSION_USER_ID;
                 const isNotFinished = hs.trangThaiDo !== 'KetThuc';
                 const canEdit      = isOwner && isNotFinished;
+                const labelHoSo = (hs.soHopDong ? hs.soHopDong : 'Chưa có HĐ') + ' - ' + (hs.nguoiDangKy || 'Không tên');
 
                 const btnXuLy = canEdit
                     ? `<button class="btn btn-xs btn-outline-primary mb-1" onclick="openXuLy(${hs.id})" title="Xử lý hồ sơ">
@@ -696,8 +697,8 @@
                         <button class="btn btn-xs btn-outline-success mb-1" onclick="openBanVeModal(${hs.id})" title="Bản vẽ">
                             <i class="bi bi-map"></i> Bản vẽ
                         </button>
-                        <button class="btn btn-xs btn-outline-info mb-1"
-                                onclick="themVaoKhay('hoso', ${hs.id}, '${hs.soHopDong}')"
+                            <button class="btn btn-xs btn-outline-info mb-1"
+                                onclick="themVaoKhay('hoso', ${hs.id}, '${labelHoSo.replace(/'/g, "\\'")}')"
                                 title="Đưa vào khay xuất Excel hồ sơ">
                             <i class="bi bi-clipboard-plus"></i> Đưa vào khay xuất DS
                         </button>
@@ -856,21 +857,32 @@
     // ============================================================
     // MỞ MODAL XỬ LÝ HỒ SƠ → render JS (sẽ hoàn thiện khi có Partial)
     // ============================================================
-        // Index.cshtml - openXuLy() gọi endpoint trả về Partial HTML:
-        async function openXuLy(id) {
+    // Index.cshtml - openXuLy() gọi endpoint trả về Partial HTML:
+    async function openXuLy(id, isReadOnly = false) {
         currentHoSoId = id;
         $('#modalXuLy').modal('show');
         showLoader('#contentXuLy');
+
         try {
             const res = await fetch(`/DoDac/FormXuLy`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             $('#contentXuLy').html(await res.text());
-            // Gọi hàm init của Partial sau khi HTML đã render
+
+            // GỌI HÀM CŨ CỦA BẠN (vẫn giữ nguyên tham số)
             await fxl_Init(id);
+
+            // XỬ LÝ KHÓA FORM SAU KHI INIT XONG
+            if (isReadOnly === true) {
+                // Đợi một chút để PartialView render xong
+                setTimeout(() => {
+                    $('#fxl_Content input, #fxl_Content select, #fxl_Content textarea, #fxl_Content button').prop('disabled', true);
+                    $('#fxl_BtnSave').hide();
+                    $('#fxl_BtnGroupXuLy').css({ 'pointer-events': 'none', 'opacity': '0.5' });
+                    $('#fxl_LeftButtons').hide();
+                }, 100);
+            }
         } catch (e) {
-            $('#contentXuLy').html(
-                `<div class="alert alert-danger m-3">Lỗi tải form: ${e.message}</div>`
-            );
+            $('#contentXuLy').html(`<div class="alert alert-danger m-3">Lỗi tải form: ${e.message}</div>`);
         }
     }
 
@@ -1405,10 +1417,14 @@
                 <td class="text-nowrap">${hs.ngayTraKetQua ? formatDisplayDate(hs.ngayTraKetQua) : ''}</td>
 
                 <td class="text-center text-nowrap">
+                    <button class="btn btn-sm btn-outline-success" onclick="openXuLy(${hs.id}, true)" title="Mở đăng ký">
+                        <i class="bi bi-map"></i>
+                    </button>
                     <button class="btn btn-sm btn-outline-success" onclick="openBanVeModal(${hs.id})" title="Mở bản vẽ">
                         <i class="bi bi-map"></i>
                     </button>
                 </td>
+                    
             </tr>`).join('');
 
         // ── Phân trang ──────────────────────────────────────────────
@@ -1793,9 +1809,11 @@
     function themVaoKhay(type, id, label) {
         let storageKey = (type === 'hoso') ? 'khay_hoso_ids' : 'khay_banve_ids';
         let list = JSON.parse(localStorage.getItem(storageKey)) || [];
-
-        if (list.includes(id)) { alert('Đã có trong khay!'); return; }
-        list.push(id);
+        if (list.some(item => item.id == id)) {
+            alert('Đã có trong khay!');
+            return;
+        }
+        list.push({ id: id, label: label });
         localStorage.setItem(storageKey, JSON.stringify(list));
         capNhatGiaoDienKhayNho();
     }
@@ -1809,24 +1827,30 @@
         }
         $('#khayNhoTamWrapper').show();
 
-        // Thêm nút xóa vào mỗi dòng: <a href="#" onclick="xoaKhoiKhay('hoso', ${id})">×</a>
-        $('#khay_UlHoSo').html(hsList.map(id => `
-            <li class="d-flex justify-content-between p-1">
-                <span>ID HS: ${id}</span>
-                <a href="javascript:void(0)" class="text-danger fw-bold" onclick="xoaKhoiKhay('hoso', ${id})">×</a>
+        // Tab Hồ Sơ
+        $('#khay_UlHoSo').html(hsList.map(item => `
+            <li class="d-flex justify-content-between p-1 border-bottom">
+                <span class="text-truncate" style="max-width:400px;" title="${item.label}">
+                    <small class="text-muted">HS ${item.id}:</small> <b>${item.label}</b>
+                </span>
+                <a href="javascript:void(0)" class="text-danger fw-bold ms-2" onclick="xoaKhoiKhay('hoso', ${item.id})">×</a>
             </li>`).join(''));
 
-        $('#khay_UlBanVe').html(bvList.map(id => `
-            <li class="d-flex justify-content-between p-1">
-                <span>ID BV: ${id}</span>
-                <a href="javascript:void(0)" class="text-danger fw-bold" onclick="xoaKhoiKhay('banve', ${id})">×</a>
+        // Tab Bản Vẽ
+        $('#khay_UlBanVe').html(bvList.map(item => `
+            <li class="d-flex justify-content-between p-1 border-bottom">
+                <span class="text-truncate" style="max-width:400px;" title="${item.label}">
+                    <small class="text-muted">BV ${item.id}:</small> <b>${item.label}</b>
+                </span>
+                <a href="javascript:void(0)" class="text-danger fw-bold ms-2" onclick="xoaKhoiKhay('banve', ${item.id})">×</a>
             </li>`).join(''));
     }
 
     function xoaKhoiKhay(type, id) {
         let key = (type === 'hoso') ? 'khay_hoso_ids' : 'khay_banve_ids';
         let list = JSON.parse(localStorage.getItem(key)) || [];
-        list = list.filter(x => x != id);
+        // Lọc theo thuộc tính .id của object
+        list = list.filter(x => x.id != id);
         localStorage.setItem(key, JSON.stringify(list));
         capNhatGiaoDienKhayNho();
     }
@@ -1847,19 +1871,15 @@
     }
 
     async function xuatKhayNhoTam() {
-        // 1. Kiểm tra xem tab nào đang active
         let isHoSoActive = $('#tabKhayHoSo').hasClass('active');
         let type = isHoSoActive ? 'hoso' : 'banve';
         let key = (type === 'hoso') ? 'khay_hoso_ids' : 'khay_banve_ids';
-        let listId = JSON.parse(localStorage.getItem(key)) || [];
-
-        if (listId.length === 0) {
+        let listData = JSON.parse(localStorage.getItem(key)) || [];
+        if (listData.length === 0) {
             alert('Khay ' + (type === 'hoso' ? 'Hồ sơ' : 'Bản vẽ') + ' đang trống!');
             return;
         }
-
-        // 2. Chọn đúng API tương ứng
-        // Nếu là 'hoso' gọi API xuất hồ sơ, 'banve' gọi API xuất bản vẽ
+        let listId = listData.map(item => item.id);
         let url = (type === 'hoso') ? '/api/dodac/xuatfile/excel-hoso-ids' : '/api/dodac/xuatfile/excel-chitiet-ids';
 
         $('#loader-overlay').css('display', 'flex');
@@ -1869,7 +1889,6 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ids: listId })
             });
-
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
             const blob = await res.blob();

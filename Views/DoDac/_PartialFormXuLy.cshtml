@@ -619,6 +619,15 @@
         }
     }
 
+    function fxl_KhoaGiaoDien() {
+        $('#fxl_Content input, #fxl_Content select, #fxl_Content textarea, #fxl_Content button').prop('disabled', true);
+        $('.btn-success').hide();
+        $('#fxl_BtnGroupXuLy').css({
+            'pointer-events': 'none',
+            'opacity': '0.5'
+        });
+        $('[data-bs-dismiss="modal"]').prop('disabled', false);
+    }
     // ============================================================
     // GIA - KHO DATALIST
     // ============================================================
