@@ -98,7 +98,7 @@
         $('#bc_TuNgay').val(`01/${mm}/${yyyy}`);
         $('#bc_DenNgay').val(`${dd}/${mm}/${yyyy}`);
 
-        // Load danh sách tỉnh vào dropdown (VÀ TỰ ĐỘNG CHỌN TỈNH CỦA USER)
+        // Load danh sách tỉnh vào dropdown
         await bc_LoadTinh();
 
         // Tự động load Đơn vị nếu Tỉnh đã được tự động chọn
@@ -107,14 +107,13 @@
             await bc_LoadDonViTheoTinh(selectedTinh);
         }
 
-        // Bind sự kiện đổi tỉnh → load đơn vị (Chỉ dùng 1 hàm an toàn)
         $('#bc_IDTinh').off('change').on('change', function () {
             bc_LoadDonViTheoTinh($(this).val());
         });
     }
 
     // ================================================================
-    // LOAD TỈNH → GET /api/dodac/dropdown/all-tinh
+    // LOAD TỈNH
     // ================================================================
     async function bc_LoadTinh() {
         try {
@@ -122,7 +121,6 @@
             if (!data) return;
             let opts = '<option value="">-- Tất cả các tỉnh --</option>';
             data.forEach(t => {
-                // So sánh ID để auto-select tỉnh của user
                 const isSelected = (t.id == USER_TINH_ID || t.Id == USER_TINH_ID) ? 'selected' : '';
                 opts += `<option value="${t.id}" ${isSelected}>${t.ten}</option>`;
             });
@@ -133,7 +131,7 @@
     }
 
     // ================================================================
-    // LOAD ĐƠN VỊ THEO TỈNH → GET /api/dodac/dropdown/donvi-by-tinh/{idTinh}
+    // LOAD ĐƠN VỊ THEO TỈNH
     // ================================================================
     async function bc_LoadDonViTheoTinh(idTinh) {
         const $sel = $('#bc_IDDonVi');
@@ -172,10 +170,10 @@
         }
 
         $('#bc_VungKetQua').html(`
-                <div class="text-center p-5">
-                    <div class="spinner-border text-primary"></div>
-                    <p class="mt-2">Đang tổng hợp dữ liệu...</p>
-                </div>`);
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-2">Đang tổng hợp dữ liệu...</p>
+                    </div>`);
 
         const body = {
             idTinh: parseInt($('#bc_IDTinh').val()) || null,
@@ -191,7 +189,8 @@
             const res = {
                 trangThai: raw.thongKeTrangThai || [],
                 canBo: raw.thongKeCanBo || [],
-                banVe: raw.thongKeBanVe || []
+                banVe: raw.thongKeBanVe || [],
+                quyTrinh: raw.thongKeQuyTrinh || [] // Đã bổ sung biến quy trình
             };
 
             $('#bc_VungKetQua').html(bc_RenderDashboard(res, tuNgay, denNgay));
@@ -209,58 +208,76 @@
         const trangThai = data.trangThai || [];
         const canBo = data.canBo || [];
         const banVe = data.banVe || [];
+        const quyTrinh = data.quyTrinh || [];
         const tongSo = trangThai.reduce((s, t) => s + (t.soLuong || 0), 0);
 
         let cardsHTML = '';
         trangThai.forEach(tt => {
             const mau = tt.mauSac || '#6c757d';
             cardsHTML += `
-                <div class="col-md-6">
-                    <div class="card shadow-sm border-0 border-top border-4 h-100"
-                         style="border-top-color:${mau} !important;">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="fw-bold text-muted small">${tt.tenTrangThai || ''}</span>
-                                <h3 class="fw-bold mb-0" style="color:${mau}">${tt.soLuong}</h3>
-                            </div>
-                            <div class="row g-0 py-2 border-top border-bottom my-2 bg-light">
-                                <div class="col-6 text-center border-end">
-                                    <small class="text-muted d-block small">Còn hạn</small>
-                                    <b class="text-success">${tt.conHan}</b>
+                    <div class="col-md-6">
+                        <div class="card shadow-sm border-0 border-top border-4 h-100"
+                             style="border-top-color:${mau} !important;">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="fw-bold text-muted small">${tt.tenTrangThai || ''}</span>
+                                    <h3 class="fw-bold mb-0" style="color:${mau}">${tt.soLuong}</h3>
                                 </div>
-                                <div class="col-6 text-center">
-                                    <small class="text-muted d-block small">Quá hạn</small>
-                                    <b class="text-danger">${tt.quaHan}</b>
+                                <div class="row g-0 py-2 border-top border-bottom my-2 bg-light">
+                                    <div class="col-6 text-center border-end">
+                                        <small class="text-muted d-block small">Còn hạn</small>
+                                        <b class="text-success">${tt.conHan}</b>
+                                    </div>
+                                    <div class="col-6 text-center">
+                                        <small class="text-muted d-block small">Quá hạn</small>
+                                        <b class="text-danger">${tt.quaHan}</b>
+                                    </div>
                                 </div>
+                                <a href="javascript:void(0)"
+                                   onclick="bc_MoModalTheoTrangThai('${(tt.tenTrangThai || '').replace(/'/g, "\\'")}')"
+                                   class="text-decoration-none small fw-bold">
+                                    <u>Xem danh sách</u> <i class="bi bi-chevron-right"></i>
+                                </a>
                             </div>
-                            <a href="javascript:void(0)"
-                               onclick="bc_MoModalTheoTrangThai('${(tt.tenTrangThai || '').replace(/'/g, "\\'")}')"
-                               class="text-decoration-none small fw-bold">
-                                <u>Xem danh sách</u> <i class="bi bi-chevron-right"></i>
-                            </a>
                         </div>
-                    </div>
-                </div>`;
+                    </div>`;
         });
 
-        // ── Bảng cán bộ (Sửa thành 4 cột nghiệp vụ mới) ──────────────────────────────────
+        // ── Bảng cán bộ mới ──────────────────────────────────
         const rowsCanBo = canBo.length === 0
-            ? '<tr><td colspan="6" class="text-center text-muted p-3">Không có dữ liệu</td></tr>'
+            ? '<tr><td colspan="8" class="text-center text-muted p-3">Không có dữ liệu</td></tr>'
             : canBo.map(cb => `
-                <tr>
-                    <td class="ps-3"><b>${cb.tenCanBo || 'Chưa phân công'}</b></td>
-                    <td class="text-center">${cb.tong || 0}</td>
-                    <td class="text-center text-primary">${cb.daDoDac || 0}</td>
-                    <td class="text-center fw-bold text-danger">${cb.quaHanDo || cb.quaHan || 0}</td>
-                    <td class="text-center text-success">${cb.daTraKetQua || cb.daXong || 0}</td>
-                    <td class="text-center">
-                        <button class="btn btn-outline-primary btn-xs"
-                            onclick="bc_MoModalTheoCanBo(${cb.idTaiKhoanDo}, '${(cb.tenCanBo || '').replace(/'/g, "\\'")}')">
-                            <i class="bi bi-list-check"></i> Xem &amp; Xuất Excel
-                        </button>
-                    </td>
-                </tr>`).join('');
+                    <tr>
+                        <td class="ps-3"><b>${cb.tenCanBo || 'Chưa phân công'}</b></td>
+                        <td class="text-center fw-bold bg-light">${cb.tong || 0}</td>
+                        <td class="text-center text-primary">${cb.dangXLDungHan || 0}</td>
+                        <td class="text-center text-danger fw-bold">${cb.dangXLQuaHan || 0}</td>
+                        <td class="text-center text-success">${cb.daXLDungHan || 0}</td>
+                        <td class="text-center text-danger text-decoration-underline">${cb.daXLQuaHan || 0}</td>
+                        <td class="text-center bg-light text-success fw-bold">${cb.daTraKetQua || 0}</td>
+                        <td class="text-center">
+                            <button class="btn btn-outline-primary btn-xs"
+                                onclick="bc_MoModalTheoCanBo(${cb.idTaiKhoanDo}, '${(cb.tenCanBo || '').replace(/'/g, "\\'")}')">
+                                <i class="bi bi-list-check"></i> Xem DS
+                            </button>
+                        </td>
+                    </tr>`).join('');
 
+        // ── Bảng quy trình mới ──────────────────────────────────
+        const rowsQuyTrinh = quyTrinh.length === 0
+            ? '<tr><td colspan="7" class="text-center text-muted p-3">Không có dữ liệu quy trình</td></tr>'
+            : quyTrinh.map((qt, i) => `
+                    <tr>
+                        <td class="text-center">${i + 1}</td>
+                        <td class="ps-3 fw-bold text-dark">${qt.tenQuyTrinh || 'Chưa xác định'}</td>
+                        <td class="text-center fw-bold bg-light">${qt.tong || 0}</td>
+                        <td class="text-center text-primary">${qt.dangXLDungHan || 0}</td>
+                        <td class="text-center text-danger fw-bold">${qt.dangXLQuaHan || 0}</td>
+                        <td class="text-center text-success">${qt.daXLDungHan || 0}</td>
+                        <td class="text-center text-danger text-decoration-underline">${qt.daXLQuaHan || 0}</td>
+                    </tr>`).join('');
+
+        // ── Bảng Bản vẽ ──────────────────────────────────
         const rowsBanVe = banVe.length === 0
             ? `<tr><td colspan="3" class="text-center py-5 text-muted">Không tìm thấy dữ liệu bản vẽ.</td></tr>`
             : banVe.map(bv => {
@@ -268,79 +285,115 @@
                     .map(ct => `<span class="badge bg-light text-dark border me-1">${ct.tenTrangThai}: ${ct.soLuong}</span>`)
                     .join('');
                 return `
-                    <tr>
-                        <td class="ps-3">${bv.tenLoai || ''}</td>
-                        <td class="text-center fw-bold">${bv.tongSo}</td>
-                        <td>${chiTiet}</td>
-                    </tr>`;
+                        <tr>
+                            <td class="ps-3">${bv.tenLoai || ''}</td>
+                            <td class="text-center fw-bold">${bv.tongSo}</td>
+                            <td>${chiTiet}</td>
+                        </tr>`;
             }).join('');
 
         return `
-            <div class="row mb-3">
-                <div class="col-md-8">
-                    <h5 class="fw-bold text-primary">
-                        <i class="bi bi-graph-up-arrow me-2"></i>
-                        TỔNG HỢP HỒ SƠ (${tuNgay} - ${denNgay})
-                    </h5>
-                </div>
-                <div class="col-md-4 text-end">
-                    <span class="badge bg-dark p-2">Tổng cộng: ${tongSo} hồ sơ</span>
-                </div>
-            </div>
-
-            <div class="row g-3 mb-4">
-                <div class="col-md-7">
-                    <div class="row g-3">${cardsHTML}</div>
-                </div>
-                <div class="col-md-5">
-                    <div class="card shadow-sm border-0 p-3 h-100 d-flex align-items-center justify-content-center">
-                        <canvas id="bc_Chart" style="max-height:250px; width:100%;"></canvas>
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <h5 class="fw-bold text-primary">
+                            <i class="bi bi-graph-up-arrow me-2"></i>
+                            TỔNG HỢP HỒ SƠ (${tuNgay} - ${denNgay})
+                        </h5>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <span class="badge bg-dark p-2">Tổng cộng: ${tongSo} hồ sơ</span>
                     </div>
                 </div>
-            </div>
 
-            <hr />
-
-            <h6 class="fw-bold text-secondary mb-3">
-                <i class="bi bi-people me-2"></i>THỐNG KÊ CHI TIẾT THEO CÁN BỘ XỬ LÝ
-            </h6>
-            <div class="table-responsive mb-4">
-                <table class="table table-sm table-hover border align-middle">
-                    <thead class="table-light small">
-                        <tr>
-                            <th class="ps-3">Họ và tên cán bộ</th>
-                            <th class="text-center">Tổng hồ sơ</th>
-                            <th class="text-center text-primary">Đã đo đạc/kiểm tra</th>
-                            <th class="text-center text-danger">Quá hạn đo/kiểm tra</th>
-                            <th class="text-center text-success">Đã trả KQ</th>
-                            <th class="text-center">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody class="small">${rowsCanBo}</tbody>
-                </table>
-            </div>
-
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white py-3 border-bottom">
-                    <h6 class="fw-bold mb-0 text-success text-uppercase">
-                        <i class="bi bi-layers-half me-2"></i>Thống kê bản vẽ theo loại &amp; trạng thái
-                    </h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="ps-3" style="width:250px">Loại bản vẽ</th>
-                                    <th class="text-center" style="width:120px">Tổng số</th>
-                                    <th>Chi tiết theo trạng thái</th>
-                                </tr>
-                            </thead>
-                            <tbody>${rowsBanVe}</tbody>
-                        </table>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-7">
+                        <div class="row g-3">${cardsHTML}</div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="card shadow-sm border-0 p-3 h-100 d-flex align-items-center justify-content-center">
+                            <canvas id="bc_Chart" style="max-height:250px; width:100%;"></canvas>
+                        </div>
                     </div>
                 </div>
-            </div>`;
+
+                <hr />
+
+                <h6 class="fw-bold text-secondary mb-3">
+                    <i class="bi bi-people me-2"></i>THỐNG KÊ CHI TIẾT THEO CÁN BỘ XỬ LÝ
+                </h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-sm table-hover border align-middle">
+                        <thead class="table-light small">
+                            <tr>
+                                <th class="ps-3" rowspan="2" style="vertical-align: middle;">Họ và tên cán bộ</th>
+                                <th class="text-center bg-light" rowspan="2" style="vertical-align: middle; width: 80px;">Tổng</th>
+                                <th class="text-center border-bottom-0" colspan="2">Đang Xử Lý (Chưa đo, kiểm tra)</th>
+                                <th class="text-center border-bottom-0" colspan="2">Đã Xử Lý (Đã đo, kiểm tra)</th>
+                                <th class="text-center bg-light" rowspan="2" style="vertical-align: middle; width: 100px;">Đã trả KQ</th>
+                                <th class="text-center" rowspan="2" style="vertical-align: middle; width: 100px;">Thao tác</th>
+                            </tr>
+                            <tr>
+                                <th class="text-center text-primary" style="width: 100px;">Đúng hạn</th>
+                                <th class="text-center text-danger" style="width: 100px;">Quá hạn</th>
+                                <th class="text-center text-success" style="width: 100px;">Đúng hạn</th>
+                                <th class="text-center text-danger" style="width: 100px;">Quá hạn</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">${rowsCanBo}</tbody>
+                    </table>
+                </div>
+
+                <div class="card shadow-sm border-0 border-top border-4 border-info mb-4">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h6 class="fw-bold mb-0 text-info text-uppercase">
+                            <i class="bi bi-diagram-3-fill me-2"></i>Thống kê số lượng hồ sơ theo Quy trình
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="table-light small">
+                                    <tr>
+                                        <th class="text-center" rowspan="2" style="vertical-align: middle; width: 50px;">STT</th>
+                                        <th class="ps-3" rowspan="2" style="vertical-align: middle;">Tên quy trình</th>
+                                        <th class="text-center bg-light" rowspan="2" style="vertical-align: middle; width: 80px;">Tổng</th>
+                                        <th class="text-center border-bottom-0" colspan="2">Đang Xử Lý (Chưa đo, kiểm tra)</th>
+                                        <th class="text-center border-bottom-0" colspan="2">Đã Xử Lý (Đã đo, kiểm tra)</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-center text-primary" style="width: 120px;">Đúng hạn</th>
+                                        <th class="text-center text-danger" style="width: 120px;">Quá hạn</th>
+                                        <th class="text-center text-success" style="width: 120px;">Đúng hạn</th>
+                                        <th class="text-center text-danger" style="width: 120px;">Quá hạn</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="small">${rowsQuyTrinh}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h6 class="fw-bold mb-0 text-success text-uppercase">
+                            <i class="bi bi-layers-half me-2"></i>Thống kê bản vẽ theo loại &amp; trạng thái
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3" style="width:250px">Loại bản vẽ</th>
+                                        <th class="text-center" style="width:120px">Tổng số</th>
+                                        <th>Chi tiết theo trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${rowsBanVe}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>`;
     }
 
     function bc_VeChart(trangThaiArr) {
@@ -381,10 +434,10 @@
 
     async function bc_HienThiModal() {
         $('#bc_ModalBody').html(`
-                <div class="text-center p-5">
-                    <div class="spinner-border text-primary"></div>
-                    <p class="mt-2">Đang tải dữ liệu...</p>
-                </div>`);
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-2">Đang tải dữ liệu...</p>
+                    </div>`);
 
         bootstrap.Modal.getOrCreateInstance(document.getElementById('bc_ModalChiTiet')).show();
 
@@ -433,46 +486,46 @@
                 : `<button class="btn btn-xs btn-light text-muted border opacity-50 pe-none" disabled><i class="bi bi-lock-fill"></i> Chỉ xem</button>`;
 
             return `
-                    <tr>
-                        <td class="text-center">${i + 1}</td>
-                        <td class="fw-bold text-primary">${hs.soHopDong || ''}</td>
-                        <td>${hs.nguoiDangKy || ''}</td>
-                        <td>${hs.ngayHopDong ? formatDisplayDate(hs.ngayHopDong) : ''}</td>
-                        <td>${hs.diaChiThuaDat || ''}</td>
-                        <td>${hs.tenXa || ''}</td>
-                        <td>${hs.tenDonViCongTac || ''}</td>
-                        <td><span class="badge bg-secondary">${hs.trangThaiDo || ''}</span></td>
-                        <td>${hs.tenNguoiXuLy || '---'}</td>
-                        <td>${hs.ngayYeuCau ? formatDisplayDate(hs.ngayYeuCau) : ''}</td>
-                        <td>${hs.ngayDo ? formatDisplayDate(hs.ngayDo) : ''}</td>
-                        <td>${hs.ngayTraKetQua ? formatDisplayDate(hs.ngayTraKetQua) : ''}</td>
-                        <td class="text-center">${btnXuLyHtml}</td>
-                    </tr>`;
+                        <tr>
+                            <td class="text-center">${i + 1}</td>
+                            <td class="fw-bold text-primary">${hs.soHopDong || ''}</td>
+                            <td>${hs.nguoiDangKy || ''}</td>
+                            <td>${hs.ngayHopDong ? formatDisplayDate(hs.ngayHopDong) : ''}</td>
+                            <td>${hs.diaChiThuaDat || ''}</td>
+                            <td>${hs.tenXa || ''}</td>
+                            <td>${hs.tenDonViCongTac || ''}</td>
+                            <td><span class="badge bg-secondary">${hs.trangThaiDo || ''}</span></td>
+                            <td>${hs.tenNguoiXuLy || '---'}</td>
+                            <td>${hs.ngayYeuCau ? formatDisplayDate(hs.ngayYeuCau) : ''}</td>
+                            <td>${hs.ngayDo ? formatDisplayDate(hs.ngayDo) : ''}</td>
+                            <td>${hs.ngayTraKetQua ? formatDisplayDate(hs.ngayTraKetQua) : ''}</td>
+                            <td class="text-center">${btnXuLyHtml}</td>
+                        </tr>`;
         }).join('');
 
         return `
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover table-bordered mb-0" style="font-size:.82rem;">
-                        <thead class="table-light sticky-top">
-                            <tr>
-                                <th class="text-center">#</th>
-                                <th>Số HĐ</th>
-                                <th>Chủ sử dụng</th>
-                                <th>Ngày ĐK</th>
-                                <th>Địa chỉ</th>
-                                <th>Xã/Phường</th>
-                                <th>Đơn vị</th>
-                                <th>Trạng thái</th>
-                                <th>Người GQ</th>
-                                <th>Ngày hẹn</th>
-                                <th>Ngày đo</th>
-                                <th>Ngày trả KQ</th>
-                                <th class="text-center">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                </div>`;
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover table-bordered mb-0" style="font-size:.82rem;">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th class="text-center">#</th>
+                                    <th>Số HĐ</th>
+                                    <th>Chủ sử dụng</th>
+                                    <th>Ngày ĐK</th>
+                                    <th>Địa chỉ</th>
+                                    <th>Xã/Phường</th>
+                                    <th>Đơn vị</th>
+                                    <th>Trạng thái</th>
+                                    <th>Người GQ</th>
+                                    <th>Ngày hẹn</th>
+                                    <th>Ngày đo</th>
+                                    <th>Ngày trả KQ</th>
+                                    <th class="text-center">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>`;
     }
 
     async function bc_XuatExcel() {
@@ -507,190 +560,5 @@
         } finally {
             $('#loader-overlay').hide();
         }
-    }
-</script>
-
-<div id="dashboardContainer"></div>
-
-<script>
-    // ── HÀM BẢO LƯU GIAO DIỆN (NẾU CÓ CHỖ NÀO TRONG DỰ ÁN GỌI HÀM NÀY) ──
-    async function loadDashboardData(tuNgay, denNgay, idTinh = null, idDonVi = null) {
-        const container = document.getElementById('dashboardContainer');
-        if (!container) return;
-        container.innerHTML = '<div class="text-center p-5">Đang tải dữ liệu thống kê...</div>';
-        try {
-            const params = new URLSearchParams();
-            if (tuNgay) params.append('tuNgay', tuNgay);
-            if (denNgay) params.append('denNgay', denNgay);
-            if (idTinh) params.append('idTinh', idTinh);
-            if (idDonVi) params.append('idDonVi', idDonVi);
-            const response = await fetch(`/api/dodac/baocao/thongke?${params.toString()}`);
-            if (!response.ok) throw new Error('Lỗi tải dữ liệu');
-            const data = await response.json();
-            renderDashboard(data, tuNgay, denNgay);
-        } catch (error) {
-            container.innerHTML = '<div class="alert alert-danger text-center">Lỗi tải dữ liệu thống kê</div>';
-        }
-    }
-
-    function renderDashboard(data, tuNgay, denNgay) {
-        const container = document.getElementById('dashboardContainer');
-        if (!data) {
-            container.innerHTML = '<div class="alert alert-warning text-center">Không có dữ liệu thống kê</div>';
-            return;
-        }
-
-        const thongKeTrangThai = data.thongKeTrangThai || [];
-        const thongKeCanBo = data.thongKeCanBo || [];
-        const thongKeBanVe = data.thongKeBanVe || [];
-        const tongSoHoSo = thongKeTrangThai.reduce((sum, item) => sum + item.soLuong, 0);
-
-        let html = `
-                <div class="row mb-4">
-                    <div class="col-md-8">
-                        <h5 class="fw-bold text-primary"><i class="bi bi-graph-up-arrow me-2"></i>TỔNG HỢP HỒ SƠ (${tuNgay || ''} - ${denNgay || ''})</h5>
-                    </div>
-                    <div class="col-md-4 text-end">
-                        <span class="badge bg-dark p-2">Tổng cộng: ${tongSoHoSo} hồ sơ</span>
-                    </div>
-                </div>
-                <div class="row g-3">
-                    <div class="col-md-7">
-                        <div class="row g-3">
-            `;
-        thongKeTrangThai.forEach(item => {
-            const mauSac = item.mauSac || '#4e73df';
-            html += `
-                    <div class="col-md-6">
-                        <div class="card shadow-sm border-0 border-top border-4 h-100" style="border-top-color: ${mauSac} !important;">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="fw-bold text-muted small">${escapeHtml(item.tenTrangThai)}</span>
-                                    <h3 class="fw-bold mb-0" style="color: ${mauSac}">${item.soLuong}</h3>
-                                </div>
-                                <div class="row g-0 py-2 border-top border-bottom my-2 bg-light">
-                                    <div class="col-6 text-center border-end">
-                                        <small class="text-muted d-block small">Còn hạn</small>
-                                        <b class="text-success">${item.conHan}</b>
-                                    </div>
-                                    <div class="col-6 text-center">
-                                        <small class="text-muted d-block small">Quá hạn</small>
-                                        <b class="text-danger">${item.quaHan}</b>
-                                    </div>
-                                </div>
-                                <a href="javascript:void(0)" onclick="bc_MoModalTheoTrangThai('${escapeHtml(item.tenTrangThai).replace(/'/g, "\\'")}')" class="text-decoration-none small fw-bold">
-                                    <u>Xem danh sách</u> <i class="bi bi-chevron-right"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                `;
-        });
-        html += `
-                        </div>
-                    </div>
-                    <div class="col-md-5">
-                        <div class="card shadow-sm border-0 p-3 h-100 d-flex align-items-center justify-content-center">
-                            <canvas id="canvasChart" style="max-height: 250px; width: 100%; display: block;"></canvas>
-                        </div>
-                    </div>
-                </div>
-                <hr />
-                <div class="mt-4">
-                    <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-people me-2"></i>THỐNG KÊ CHI TIẾT THEO CÁN BỘ XỬ LÝ</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover border align-middle">
-                            <thead class="table-light small">
-                                <tr>
-                                    <th class="ps-3">Họ và tên cán bộ</th>
-                                    <th class="text-center">Tổng hồ sơ</th>
-                                    <th class="text-center text-primary">Đã đo đạc</th>
-                                    <th class="text-center text-danger">Quá hạn đo</th>
-                                    <th class="text-center text-success">Đã trả KQ</th>
-                                    <th class="text-center">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody class="small">
-            `;
-        if (thongKeCanBo.length === 0) {
-            html += '<tr><td colspan="6" class="text-center p-3 text-muted">Không có dữ liệu cán bộ xử lý trong khoảng thời gian này.</td></tr>';
-        } else {
-            thongKeCanBo.forEach(cb => {
-                html += `
-                        <tr>
-                            <td class="ps-3"><b>${escapeHtml(cb.tenCanBo)}</b></td>
-                            <td class="text-center">${cb.tong || 0}</td>
-                            <td class="text-center text-primary">${cb.daDoDac || 0}</td>
-                            <td class="text-center fw-bold text-danger">${cb.quaHanDo || cb.quaHan || 0}</td>
-                            <td class="text-center text-success">${cb.daTraKetQua || cb.daXong || 0}</td>
-                            <td class="text-center">
-                                <button class="btn btn-outline-primary btn-xs" onclick="bc_MoModalTheoCanBo(${cb.idTaiKhoanDo}, '${escapeHtml(cb.tenCanBo).replace(/'/g, "\\'")}')">
-                                    <i class="bi bi-list-check"></i> Xem & Xuất Excel
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-            });
-        }
-        html += `
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="card shadow-sm border-0 mt-4">
-                    <div class="card-header bg-white py-3 border-bottom">
-                        <h6 class="fw-bold mb-0 text-success text-uppercase"><i class="bi bi-layers-half me-2"></i>Thống kê số lượng bản vẽ theo loại & trạng thái</h6>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light"><tr><th class="ps-3" style="width:250px">Loại bản vẽ</th><th class="text-center" style="width:120px">Tổng số bản vẽ</th><th>Chi tiết theo trạng thái</th></tr></thead>
-                                <tbody>`;
-        if (thongKeBanVe.length === 0) {
-            html += '<tr><td colspan="3" class="text-center py-5 text-muted">Không tìm thấy dữ liệu bản vẽ phù hợp với điều kiện lọc.</td></tr>';
-        } else {
-            thongKeBanVe.forEach(item => {
-                html += `<tr><td class="ps-3">${escapeHtml(item.tenLoai)}</td><td class="text-center fw-bold">${item.tongSo}</td><td>`;
-                if (item.chiTietTrangThai && item.chiTietTrangThai.length) {
-                    item.chiTietTrangThai.forEach(st => {
-                        html += `<span class="badge border text-dark me-1">${escapeHtml(st.tenTrangThai)}: ${st.soLuong}</span>`;
-                    });
-                }
-                html += `</td></tr>`;
-            });
-        }
-        html += `
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            `;
-        container.innerHTML = html;
-
-        setTimeout(() => {
-            const ctx = document.getElementById('canvasChart')?.getContext('2d');
-            if (ctx && thongKeTrangThai.length && typeof Chart !== 'undefined') {
-                const labels = thongKeTrangThai.map(x => x.tenTrangThai);
-                const counts = thongKeTrangThai.map(x => x.soLuong);
-                const colors = thongKeTrangThai.map(x => x.mauSac || '#4e73df');
-                if (window.myChartInstance) window.myChartInstance.destroy();
-                window.myChartInstance = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: { labels: labels, datasets: [{ data: counts, backgroundColor: colors, borderWidth: 2, borderColor: '#ffffff' }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }, cutout: '70%' }
-                });
-            }
-        }, 100);
-    }
-
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function (m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
     }
 </script>

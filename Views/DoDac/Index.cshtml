@@ -1178,9 +1178,7 @@
         }
     }
 
-    // ============================================================
     // TRA CỨU → POST /api/dodac/baocao/chitiet
-    // ============================================================
     async function renderTraCuu() {
         showLoader('#vungNoiDung');
         try {
@@ -1229,6 +1227,13 @@
 
             $(document).on('input', '#tc_TenChuSD', function () {
                 if ($(this).val().length > 0) $('#tc_TuKhoa').val('');
+            });
+            $(document).off('keypress', '#tc_TuKhoa, #tc_TenChuSD');
+            $(document).on('keypress', '#tc_TuKhoa, #tc_TenChuSD', function (e) {
+                if (e.which === 13) {
+                    e.preventDefault(); 
+                    thucHienTraCuu();   
+                }
             });
         } catch (e) {
             $('#vungNoiDung').html('<div class="alert alert-danger m-3">Lỗi khởi tạo tra cứu: ' + e.message + '</div>');

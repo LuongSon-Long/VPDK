@@ -438,7 +438,7 @@
             const json = await res.json();
             if (json.success) {
                 alert('Đã cập nhật thông tin thành công!');
-                $('#modalXuLy').modal('hide');
+                
                 renderDanhSachHoSo();
             } else {
                 alert('Lỗi: ' + (json.message || 'Không xác định'));

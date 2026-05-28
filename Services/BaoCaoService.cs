@@ -23,6 +23,7 @@ namespace HeThongQuanLyVanPhong.Services
 
             var dataRaw = await query
                 .Include(x => x.IdtaiKhoanDoNavigation)
+                .Include(x => x.IdquyTrinhNavigation)
                 .ToListAsync();
 
             DateTime dTu = DateTime.ParseExact(request.TuNgay!, "dd/MM/yyyy", null).Date;
@@ -53,34 +54,43 @@ namespace HeThongQuanLyVanPhong.Services
                     };
                 }).ToList();
 
+            DateOnly homNayDateOnly = DateOnly.FromDateTime(bayGio);
             // Thống kê cán bộ
             var thongKeCanBo = filteredData
-                .GroupBy(x => x.IdtaiKhoanDo ?? 0) // Group theo ID cán bộ đo thực địa
+                .GroupBy(x => x.IdtaiKhoanDo ?? 0)
                 .Select(g => {
-                    // Lấy bản ghi đầu tiên có thông tin điều hướng cán bộ xử lý (để lấy Họ và Tên)
                     var firstWithNav = g.FirstOrDefault(x => x.IdtaiKhoanDoNavigation != null);
                     var items = g.ToList();
 
-                    // Chuyển đổi ngày hôm nay sang định dạng DateOnly để so sánh đồng bộ dữ liệu
-                    DateOnly homNayDateOnly = DateOnly.FromDateTime(bayGio);
+                    int dangXlDungHan = 0, dangXlQuaHan = 0, daXlDungHan = 0, daXlQuaHan = 0;
 
-                    // Tính toán cột số 3: Quá hạn đo (Bao gồm cả đã đo trễ hạn và chưa đo nhưng hiện tại đã quá ngày hẹn)
-                    int soLuongQuaHanDo = items.Count(x =>
-                        x.NgayYeuCau.HasValue && (
-                            // Trường hợp 1: Đã thực hiện đo nhưng ngày đo thực tế lớn hơn ngày hẹn yêu cầu
-                            (x.NgayDo.HasValue && x.NgayDo.Value > x.NgayYeuCau.Value) ||
-                            // Trường hợp 2: Chưa đo đạc và hiện trạng ngày hôm nay đã vượt quá hạn hẹn yêu cầu
-                            (!x.NgayDo.HasValue && homNayDateOnly > x.NgayYeuCau.Value)
-                        )
-                    );
+                    foreach (var item in items)
+                    {
+                        var han = item.NgayYeuCau ?? homNayDateOnly; // Nếu không có hạn, tạm coi là hạn hôm nay
+
+                        if (item.NgayDo.HasValue)
+                        {
+                            // Đã xử lý (Đã có ngày đo)
+                            if (item.NgayDo.Value <= han) daXlDungHan++;
+                            else daXlQuaHan++;
+                        }
+                        else
+                        {
+                            // Đang xử lý (Chưa có ngày đo)
+                            if (homNayDateOnly <= han) dangXlDungHan++;
+                            else dangXlQuaHan++;
+                        }
+                    }
 
                     return new ThongKeCanBoDto
                     {
                         IDTaiKhoanDo = g.Key,
                         TenCanBo = firstWithNav?.IdtaiKhoanDoNavigation?.HoVaTen ?? "Chưa phân công",
                         Tong = items.Count,
-                        DaDoDac = items.Count(x => x.NgayDo.HasValue),
-                        QuaHanDo = soLuongQuaHanDo,
+                        DangXLDungHan = dangXlDungHan,
+                        DangXLQuaHan = dangXlQuaHan,
+                        DaXLDungHan = daXlDungHan,
+                        DaXLQuaHan = daXlQuaHan,
                         DaTraKetQua = items.Count(x => x.NgayTraKetQua.HasValue)
                     };
                 }).ToList();
@@ -105,11 +115,47 @@ namespace HeThongQuanLyVanPhong.Services
                                         }).ToList()
                 }).ToList();
 
+            var thongKeQuyTrinh = filteredData
+                // (Bỏ lệnh .Where(TrangThai != KetThuc) ở đây để tính tổng chính xác)
+                .GroupBy(x => x.IdquyTrinhNavigation?.TenQuyTrinh ?? "Chưa phân loại quy trình")
+                .Select(g =>
+                {
+                    var items = g.ToList();
+                    int dangXlDungHan = 0, dangXlQuaHan = 0, daXlDungHan = 0, daXlQuaHan = 0;
+
+                    foreach (var item in items)
+                    {
+                        var han = item.NgayYeuCau ?? homNayDateOnly;
+
+                        if (item.NgayDo.HasValue)
+                        {
+                            if (item.NgayDo.Value <= han) daXlDungHan++;
+                            else daXlQuaHan++;
+                        }
+                        else
+                        {
+                            if (homNayDateOnly <= han) dangXlDungHan++;
+                            else dangXlQuaHan++;
+                        }
+                    }
+
+                    return new ThongKeQuyTrinhDto
+                    {
+                        TenQuyTrinh = g.Key,
+                        Tong = items.Count,
+                        DangXLDungHan = dangXlDungHan,
+                        DangXLQuaHan = dangXlQuaHan,
+                        DaXLDungHan = daXlDungHan,
+                        DaXLQuaHan = daXlQuaHan
+                    };
+                }).ToList();
+
             return new
             {
                 thongKeTrangThai,
                 thongKeCanBo,
-                thongKeBanVe
+                thongKeBanVe,
+                thongKeQuyTrinh
             };
         }
 
