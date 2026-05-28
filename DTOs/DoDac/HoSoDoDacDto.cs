@@ -29,6 +29,7 @@
         public string? TenXa { get; set; }
         public string? TenTinh { get; set; }
         public string? TenNguoiXuLy { get; set; }
+        public string? TenNguoiDo { get; set; }
     }
 
     public class CreateHoSoDoDacDto

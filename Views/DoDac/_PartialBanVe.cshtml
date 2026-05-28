@@ -137,7 +137,14 @@
                     <input type="text" id="bv2_NgayKy" class="form-control form-control-sm"
                            placeholder="dd/MM/yyyy" oninput="bv2_UpdateTrangThai()" />
                 </div>
-
+                <div class="col-12 mt-2">
+                    <div class="form-check form-switch fs-5">
+                        <input class="form-check-input" type="checkbox" id="bv2_KhongDuDieuKien" onchange="bv2_UpdateTrangThai()" />
+                        <label class="form-check-label fs-6 mt-1 ms-2 text-danger fw-bold" for="bv2_KhongDuDieuKien">
+                            Không đủ điều kiện (Trả lại hồ sơ)
+                        </label>
+                    </div>
+                </div>
                 <div class="col-12">
                     <label class="small fw-bold">Ghi chú:</label>
                     <textarea id="bv2_GhiChu" class="form-control form-control-sm" rows="2"></textarea>
@@ -251,7 +258,7 @@
                                    class="form-control form-control-sm" placeholder="dd/MM/yyyy" />
                         </div>
                     </div>
-
+                    
                     <div class="col-12 mt-2">
                         <div class="form-check form-switch fs-5">
                             <input class="form-check-input" type="checkbox" id="dg2_DaThanhToan" />
@@ -391,25 +398,22 @@
         }
         const html = list.map(bv => {
             const isPaid = bv2_PaidIds.includes(bv.id);
-            const badgePaid = isPaid
-                ? `<span class="badge bg-success" title="Đã thanh toán">
-                       <i class="bi bi-currency-dollar"></i> đã thu
-                   </span>`
-                : '';
+            const isNotOk = bv.trangThai === 'Không đủ điều kiện'; // Check trạng thái
+
+            // Badge cho trạng thái
+            let badges = '';
+            if (isPaid) badges += `<span class="badge bg-success me-1">đã thu</span>`;
+            if (isNotOk) badges += `<span class="badge bg-danger">không ĐK</span>`;
+
             return `
-            <a href="javascript:void(0)"
-               class="list-group-item list-group-item-action bv2-item"
-               data-id="${bv.id}">
+            <a href="javascript:void(0)" class="list-group-item list-group-item-action bv2-item" data-id="${bv.id}">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="fw-bold text-primary small">
                         Tờ: ${bv.toBD || '?'} - Thửa: ${bv.soHieuThua || '?'}
                     </div>
-                    ${badgePaid}
+                    <div>${badges}</div>
                 </div>
-                <div class="d-flex justify-content-between mt-1">
-                    <small class="text-muted">DT: ${bv.dienTich || '?'}</small>
-                    <small class="text-muted">${bv.trangThai || ''}</small>
-                </div>
+                <small class="text-muted">${bv.trangThai || ''}</small>
             </a>`;
         }).join('');
         $('#bv2_ListBanVe').html(html);
@@ -677,7 +681,8 @@
             $('#bv2_NgayVB').val(d.ngayVB ? formatDisplayDate(d.ngayVB) : '');
             $('#bv2_NgayTrinhKy').val(d.ngayTrinhKy ? formatDisplayDate(d.ngayTrinhKy) : '');
             $('#bv2_NgayKy').val(d.ngayKy ? formatDisplayDate(d.ngayKy) : '');
-
+            $('#bv2_KhongDuDieuKien').prop('checked', d.trangThai === 'Không đủ điều kiện');
+            bv2_UpdateTrangThai();
             // [ĐÃ SỬA]: Ép đúng ID Tỉnh / Xã
             const idTinh = d.iDTinh || d.idtinh || d.idTinh;
             const idXa = d.iDXa || d.idxa || d.idXa;
@@ -740,11 +745,19 @@
     // TRẠNG THÁI TỰ ĐỘNG THEO NGÀY
     // ================================================================
     function bv2_UpdateTrangThai() {
+        const isChecked = $('#bv2_KhongDuDieuKien').is(':checked');
+        if (isChecked) {
+            $('#bv2_TrangThai').val('Không đủ điều kiện').addClass('text-danger fw-bold');
+            return; // Dừng hàm tại đây, không xét tiếp các trạng thái khác
+        }
+
+
+        $('#bv2_TrangThai').removeClass('text-danger fw-bold');
         let tt = 'Chưa lập bản vẽ';
-        if ($('#bv2_NgayLap').val())     tt = 'Đã lập và đợi kiểm tra bản vẽ';
-        if ($('#bv2_NgayVB').val())      tt = 'Đang xin ý kiến cơ quan liên quan';
-        if ($('#bv2_NgayTrinhKy').val()) tt = 'Đang trình ký';
-        if ($('#bv2_NgayKy').val())      tt = 'Đã duyệt bản vẽ';
+        if ($('#bv2_NgayKy').val()) tt = 'Đã duyệt bản vẽ';
+        else if ($('#bv2_NgayTrinhKy').val()) tt = 'Đang trình ký';
+        else if ($('#bv2_NgayVB').val()) tt = 'Đang xin ý kiến cơ quan liên quan';
+        else if ($('#bv2_NgayLap').val()) tt = 'Đã lập bản vẽ';
         $('#bv2_TrangThai').val(tt);
     }
 
@@ -760,7 +773,10 @@
         const idNguoiKy = parseInt($('#bv2_IDNguoiKy').val()) || null;
         const idTinh = parseInt($('#bv2_IDTinhSel').val()) || null;
         const idXa = parseInt($('#bv2_IDXa').val()) || null;
-
+        const trangThaiHienTai = $('#bv2_TrangThai').val();
+        if ($('#bv2_KhongDuDieuKien').is(':checked')) {
+            trangThaiMoi = 'Không đủ điều kiện';
+        }
         const model = {
             id: parseInt($('#bv2_ID').val()) || 0,
 
@@ -796,9 +812,10 @@
             iDNguoiKy: idNguoiKy,
             idnguoiKy: idNguoiKy,
             idNguoiKy: idNguoiKy,
-
+            
             ngayKyStr: $('#bv2_NgayKy').val(),
             donViDoDac: $('#bv2_DonViDoDac').val(),
+            trangThai: trangThaiHienTai,
             ghiChu: $('#bv2_GhiChu').val()
         };
 

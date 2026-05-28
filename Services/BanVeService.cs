@@ -92,6 +92,8 @@ namespace HeThongQuanLyVanPhong.Services
 
         private string XacDinhTrangThai(SaveBanVeDto dto)
         {
+            if (dto.TrangThai == "Không đủ điều kiện") return "Không đủ điều kiện";
+
             DateOnly? ngayLap = ParseToDateOnly(dto.NgayLapStr);
             DateOnly? ngayVB = ParseToDateOnly(dto.NgayVBStr);
             DateOnly? ngayTrinhKy = ParseToDateOnly(dto.NgayTrinhKyStr);
@@ -100,7 +102,7 @@ namespace HeThongQuanLyVanPhong.Services
             if (ngayKy != null) return "Đã duyệt bản vẽ";
             if (ngayTrinhKy != null) return "Đang trình ký";
             if (ngayVB != null) return "Đang xin ý kiến cơ quan liên quan";
-            if (ngayLap != null) return "Đã lập bản vẽ";
+            if (ngayLap != null) return "Đã lập bản vẽ"; 
             return "Chưa lập bản vẽ";
         }
 

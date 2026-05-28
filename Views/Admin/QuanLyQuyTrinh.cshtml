@@ -239,70 +239,78 @@
             $('.list-group-item').removeClass('active bg-light text-primary');
             $(`#qt_row_${id}`).addClass('active bg-light text-primary');
 
+            // 1. DỰNG KHUNG GIAO DIỆN CƠ BẢN NGAY LẬP TỨC
+            // Nút "THÊM BƯỚC MỚI" luôn luôn xuất hiện
+            let html = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold text-primary m-0">LUỒNG XỬ LÝ HỒ SƠ (ID: ${id})</h4>
+                    <button class="btn btn-success fw-bold" onclick="openModalStep(${id})">
+                        <i class="bi bi-plus-circle me-1"></i> THÊM BƯỚC MỚI
+                    </button>
+                </div>
+                <div id="stepsContainer">
+                    <div class="spinner-border text-primary"></div> Đang tải các bước...
+                </div>`;
+
+            $('#workflowContainer').html(html);
+
+            // 2. GỌI API LOAD DỮ LIỆU
             try {
                 const data = await callApi(`/api/admin/QuyTrinh/${id}/details`);
                 listStepsData = data?.steps || [];
 
-                let html = `<div class="d-flex justify-content-between align-items-center mb-4">
-                                        <h4 class="fw-bold text-primary m-0">LUỒNG XỬ LÝ HỒ SƠ</h4>
-                                        <button class="btn btn-success fw-bold" onclick="openModalStep(${id})">
-                                            <i class="bi bi-plus-circle me-1"></i> THÊM BƯỚC MỚI
-                                        </button>
-                                    </div>`;
-
                 if (listStepsData.length === 0) {
-                    html += `<div class="alert alert-info text-center">Chưa có bước xử lý nào. Hãy thêm bước đầu tiên.</div>`;
-                } else {
-                    listStepsData.forEach(step => {
-                        let transitions = (data?.transitions || []).filter(t => t.idBuocQuyTrinh === step.id);
+                    $('#stepsContainer').html(`<div class="alert alert-info text-center">Chưa có bước xử lý nào cho quy trình này.</div>`);
+                    return;
+                }
 
-                        // 👉 NÚT XÓA BƯỚC CHÍNH (Bên góc phải)
-                        const btnXoaBuoc = (CURRENT_USERNAME === 'admin')
-                            ? `<button class="btn btn-sm btn-white text-danger" onclick="deleteStep(${step.id})">Xóa</button>`
-                            : `<button class="btn btn-sm btn-light text-muted opacity-50 pe-none" title="Chỉ admin mới được xóa"><i class="bi bi-lock-fill me-1"></i>Xóa</button>`;
+                // 3. RENDER CÁC BƯỚC
+                let stepsHtml = '';
+                listStepsData.forEach(step => {
+                    let transitions = (data?.transitions || []).filter(t => t.idBuocQuyTrinh === step.id);
 
-                        // 👉 XỬ LÝ NÚT XÓA NHẢY BƯỚC BẰNG TEXT RÕ RÀNG
-                        let transitionsHtml = '';
-                        transitions.forEach(tr => {
-                            let next = listStepsData.find(s => s.id === tr.idBuocTiepTheo);
-                            let nextName = next ? next.tenBuocQt : "KẾT THÚC";
+                    const btnXoaBuoc = (CURRENT_USERNAME === 'admin')
+                        ? `<button class="btn btn-sm btn-white text-danger" onclick="deleteStep(${step.id})">Xóa</button>`
+                        : `<button class="btn btn-sm btn-light text-muted opacity-50 pe-none"><i class="bi bi-lock-fill"></i></button>`;
 
-                            let btnXoaNhayBuoc = (CURRENT_USERNAME === 'admin')
-                                ? `<span class="badge bg-danger ms-2" style="cursor: pointer;" onclick="deleteNhayBuoc(${tr.id})" title="Xóa luồng này">Xóa</span>`
-                                : `<span class="badge bg-secondary ms-2 opacity-50" title="Chỉ admin mới được xóa"><i class="bi bi-lock-fill"></i></span>`;
+                    let transitionsHtml = '';
+                    transitions.forEach(tr => {
+                        let next = listStepsData.find(s => s.id === tr.idBuocTiepTheo);
+                        let nextName = next ? next.tenBuocQt : "KẾT THÚC";
+                        let btnXoaNhayBuoc = (CURRENT_USERNAME === 'admin')
+                            ? `<span class="badge bg-danger ms-2" style="cursor: pointer;" onclick="deleteNhayBuoc(${tr.id})" title="Xóa luồng này">Xóa</span>`
+                            : `<span class="badge bg-secondary ms-2 opacity-50"><i class="bi bi-lock-fill"></i></span>`;
 
-                            transitionsHtml += `
-                                        <div class="transition-badge shadow-sm">
-                                            <span>${tr.tenBuocChuyen} ➔ <b>${nextName}</b></span>
-                                            ${btnXoaNhayBuoc}
-                                        </div>`;
-                        });
+                        transitionsHtml += `
+                            <div class="transition-badge shadow-sm">
+                                <span>${tr.tenBuocChuyen} ➔ <b>${nextName}</b></span>
+                                ${btnXoaNhayBuoc}
+                            </div>`;
+                    });
 
-                        html += `
-                                <div class="step-node shadow-sm mb-4">
-                                    <div class="card step-card border-0">
-                                        <div class="card-body">
-                                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                                <h5 class="fw-bold mb-0">
-                                                    <span class="badge bg-dark me-2">ID: ${step.id}</span> ${step.tenBuocQt}
-                                                </h5>
-                                                <div class="btn-group border rounded">
-                                                    <button class="btn btn-sm btn-white text-primary border-end fw-bold" onclick="openModalConnect(${step.id})">Nối bước</button>
-                                                    ${btnXoaBuoc}
-                                                </div>
-                                            </div>
-                                            <div class="pt-2 border-top">
-                                                ${transitionsHtml}
-                                            </div>
+                    stepsHtml += `
+                        <div class="step-node shadow-sm mb-4">
+                            <div class="card step-card border-0">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="fw-bold mb-0"><span class="badge bg-dark me-2">ID: ${step.id}</span> ${step.tenBuocQt}</h5>
+                                        <div class="btn-group border rounded">
+                                            <button class="btn btn-sm btn-white text-primary border-end fw-bold" onclick="openModalConnect(${step.id})">Nối bước</button>
+                                            ${btnXoaBuoc}
                                         </div>
                                     </div>
-                                </div>`;
-                    });
-                }
-                $('#workflowContainer').html(html);
+                                    <div class="pt-2 border-top">${transitionsHtml}</div>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+
+                $('#stepsContainer').html(stepsHtml);
+
             } catch (error) {
-                console.error(error);
-                $('#workflowContainer').html('<div class="alert alert-danger">Lỗi tải dữ liệu quy trình, vui lòng thử lại!</div>');
+                console.error("Lỗi khi load chi tiết luồng:", error);
+                // Nếu lỗi 404 (do quy trình mới chưa có bước), 
+                $('#stepsContainer').html(`<div class="alert alert-warning text-center">Chưa có cấu hình luồng xử lý.</div>`);
             }
         }
 

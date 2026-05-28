@@ -38,5 +38,7 @@
         public int? IdDonVi { get; set; }
         public string? TuNgay { get; set; }  // dd/MM/yyyy
         public string? DenNgay { get; set; } // dd/MM/yyyy
+        public string? TenChuSD { get; set; }
+        public string? TuKhoa { get; set; }
     }
 }
