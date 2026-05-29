@@ -21,7 +21,7 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
             if (string.IsNullOrEmpty(request.TuNgay) || string.IsNullOrEmpty(request.DenNgay))
                 return BadRequest("Vui lòng cung cấp khoảng thời gian");
             var data = await _baoCaoService.GetThongKeAsync(request);
-            return Ok(data);
+            return Ok(data);        
         }
 
         [HttpPost("chitiet")]

@@ -14,9 +14,11 @@
         public int IDTaiKhoanDo { get; set; }
         public string? TenCanBo { get; set; }
         public int Tong { get; set; }
-        public int DaXong { get; set; }
-        public int DangLam { get; set; }
-        public int QuaHan { get; set; }
+        public int DangXLDungHan { get; set; }
+        public int DangXLQuaHan { get; set; }
+        public int DaXLDungHan { get; set; }
+        public int DaXLQuaHan { get; set; }
+        public int DaTraKetQua { get; set; }
     }
 
     public class ThongKeBanVeDto
@@ -32,11 +34,24 @@
         public int SoLuong { get; set; }
     }
 
+    public class ThongKeQuyTrinhDto
+    {
+        public string? TenQuyTrinh { get; set; }
+        public int Tong { get; set; }
+        public int DangXLDungHan { get; set; }
+        public int DangXLQuaHan { get; set; }
+        public int DaXLDungHan { get; set; }
+        public int DaXLQuaHan { get; set; }
+    }
+    
+
     public class BaoCaoRequestDto
     {
         public int? IdTinh { get; set; }
         public int? IdDonVi { get; set; }
         public string? TuNgay { get; set; }  // dd/MM/yyyy
         public string? DenNgay { get; set; } // dd/MM/yyyy
+        public string? TenChuSD { get; set; }
+        public string? TuKhoa { get; set; }
     }
 }
