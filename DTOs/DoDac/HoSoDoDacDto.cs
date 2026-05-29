@@ -29,6 +29,7 @@
         public string? TenXa { get; set; }
         public string? TenTinh { get; set; }
         public string? TenNguoiXuLy { get; set; }
+        public string? TenNguoiDo { get; set; }
     }
 
     public class CreateHoSoDoDacDto
@@ -41,6 +42,7 @@
         public string? SoDienThoai { get; set; }
         public string? MucDichDangKy { get; set; }
         public string? DiaChiThuaDat { get; set; }
+        public string? SeriGCN { get; set; }
         public int? IDXa { get; set; }
         public int? IDTinh { get; set; }
         public string? GhiChu { get; set; }
