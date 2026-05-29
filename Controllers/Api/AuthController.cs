@@ -82,5 +82,32 @@ namespace HeThongQuanLyVanPhong.Controllers.Api
             var hasPermission = await _authService.HasPermissionAsync(userId.Value, moduleId);
             return Ok(hasPermission);
         }
+
+        [HttpGet("guest-login")]
+        public IActionResult GuestLogin()
+        {
+            HttpContext.Session.Clear();
+            HttpContext.Session.SetInt32("UserId", -1);
+            HttpContext.Session.SetString("FullName", "Khách đăng ký");
+            HttpContext.Session.SetString("Username", "Khach");
+            HttpContext.Session.SetString("ChucVu", "Khách");
+            HttpContext.Session.SetString("DonViCongTac", "Hộ gia đình, cá nhân, tổ chức đăng ký");
+            HttpContext.Session.SetInt32("UserTinhId", 0);
+            return LocalRedirect("/");
+        }
+
+        [HttpPost("set-tinh")]
+        public IActionResult SetTinh([FromBody] UpdateTinhDto request)
+        {
+            if (request.IdTinh > 0)
+            {
+                HttpContext.Session.SetInt32("UserTinhId", request.IdTinh);
+            }
+            return Ok(new { success = true });
+        }
+    }
+    public class UpdateTinhDto
+    {
+        public int IdTinh { get; set; }
     }
 }

@@ -13,7 +13,7 @@
             <a href="@Url.Action("Index", "Home")" class="btn btn-outline-secondary btn-sm me-3">
                 <i class="bi bi-house-door-fill"></i> Trang chủ
             </a>
-            <span>Cán bộ xử lý: <b>@canBo</b></span>
+            <span>Người đăng nhập: <b>@canBo</b></span>
             <span class="mx-2">|</span>
             <span>Đơn vị: <b>@donVi</b></span>
         </div>
@@ -24,25 +24,36 @@
 <div class="row">
     <div class="col-md-3">
         <div class="list-group shadow-sm" id="menuDoDac">
-            @if (tenChucVu=="TiepNhan")
+            @if (tenChucVu == "TiepNhan" || tenChucVu == "Khách")
             {
                 <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
-                   onclick="loadTask('TiepNhan', this)">Tiếp nhận hồ sơ</a>
+                   onclick="loadTask('TiepNhan', this)">Đăng ký, tiếp nhận hồ sơ đo đạc</a>
             }
-            <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
-               onclick="loadTask('XuLy', this)">Xử lý hồ sơ</a>
-            <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
-               onclick="loadTask('TraCuu', this)">Tra cứu hồ sơ</a>
-            <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
-               onclick="moModalQuanLySoHieu()"><i class="bi bi-list-ol me-2"></i>Quản lý số hiệu bản vẽ</a>
-            <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
-               onclick="loadTask('BaoCao', this)">Tổng hợp, báo cáo</a>
-            @if (tenChucVu == "TiepNhan")
+            @if (tenChucVu == "Khách")
             {
                 <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
-                   onclick="moModalXuatDSBanVe()">
-                    <i class="bi bi-file-earmark-excel-fill me-2"></i> Xuất DS bản vẽ
-                </a>
+                   onclick="loadTask('HoSoKhach', this)">Hồ sơ khách đăng ký</a>
+            }
+            else
+            {
+                <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
+                   onclick="loadTask('XuLy', this)">Xử lý hồ sơ</a>
+
+                <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
+                   onclick="loadTask('TraCuu', this)">Tra cứu hồ sơ</a>
+
+                <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
+                   onclick="moModalQuanLySoHieu()"><i class="bi bi-list-ol me-2"></i>Quản lý số hiệu bản vẽ</a>
+
+                <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
+                   onclick="loadTask('BaoCao', this)">Tổng hợp, báo cáo</a>
+                @if (tenChucVu == "TiepNhan")
+                {
+                    <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
+                       onclick="moModalXuatDSBanVe()">
+                        <i class="bi bi-file-earmark-excel-fill me-2"></i> Xuất DS bản vẽ
+                    </a>
+                }
             }
         </div>
     </div>
@@ -460,7 +471,11 @@
     // ============================================================
     $(document).ready(function () {
         loadDanhSachTinhVaoDropdowns();
-        loadTask('XuLy', null);
+        if (CURRENT_USER_ROLE === 'Khách') {
+            loadTask('TiepNhan', $('#menuDoDac a').first());
+        } else {
+            loadTask('XuLy', null);
+        }
 
         // Kích hoạt khay nhớ tạm ở đây
         if (typeof capNhatGiaoDienKhayNho === "function") {
@@ -506,13 +521,18 @@
             TiepNhan: 'Tiếp nhận hồ sơ',
             XuLy:     'Hồ sơ đang xử lý',
             TraCuu:   'Tra cứu hồ sơ',
-            BaoCao:   'Tổng hợp, báo cáo'
+            BaoCao:   'Tổng hợp, báo cáo',
+            HoSoKhach: 'Hồ sơ khách đăng ký'
         };
         $('#lblTieuDeVung').text(tieuDe[taskName] || taskName);
 
         switch (taskName) {
+            case 'HoSoKhach':
+                await renderDanhSachHoSo(false);
+                break;
+
             case 'XuLy':
-                await renderDanhSachHoSo(true);   // ✅ gọi đúng hàm cho tab Xử lý
+                await renderDanhSachHoSo(true);   
                 break;
 
             case 'TiepNhan':

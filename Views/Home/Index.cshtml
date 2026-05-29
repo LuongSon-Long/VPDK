@@ -4,6 +4,22 @@
 @{
     ViewData["Title"] = "Trang chủ hệ thống";
     var sessionTinhId = Context.Session.GetInt32("UserTinhId") ?? 0;
+    var userId = Context.Session.GetInt32("UserId") ?? 0;
+    var displayModules = Model != null
+        ? new List<HeThongQuanLyVanPhong.DTOs.TaiKhoan.ModuleDashboardDto>(Model)
+        : new List<HeThongQuanLyVanPhong.DTOs.TaiKhoan.ModuleDashboardDto>();
+    if (userId == -1)
+    {
+        if (!displayModules.Any(m => m.Url != null && m.Url.Contains("/DoDac", StringComparison.OrdinalIgnoreCase)))
+        {
+            displayModules.Add(new HeThongQuanLyVanPhong.DTOs.TaiKhoan.ModuleDashboardDto
+            {
+                TenModule = "Đo đạc", 
+                Url = "/DoDac",                         
+                IconClass = "bi-map-fill"               
+            });
+        }
+    }
 }
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -51,10 +67,12 @@
         </div>
 
         <div class="text-md-end ms-md-3">
-            <div class="text-muted mb-1" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Tỉnh:</div>
-            <div class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 rounded-pill fs-6 shadow-sm">
-                <i class="bi bi-geo-alt-fill me-1"></i> <span id="txtTenTinhHienThi">Đang tải...</span>
-            </div>
+            <div class="text-muted mb-1" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Tỉnh/Thành phố:</div>
+
+            <select id="cboTenTinhHienThi" class="form-select form-select-sm bg-success bg-opacity-10 text-success border-success fw-bold rounded-pill shadow-sm" style="min-width: 220px; cursor: pointer;">
+                <option value="0">Đang tải danh sách...</option>
+            </select>
+
         </div>
     </div>
 
@@ -64,13 +82,12 @@
         </div>
         <div class="card-body">
             <div class="row text-center mt-3">
-
-                @if (Model != null && Model.Any())
+                @if (displayModules.Any())
                 {
-                    foreach (var module in Model)
+                    foreach (var module in displayModules)
                     {
                         <div class="col-6 col-md-4 col-lg-3 mb-4">
-                            <a href="@module.Url" class="text-decoration-none text-dark">
+                            <a href="javascript:void(0);" onclick="kiemTraTruyCap('@module.Url', event)" class="text-decoration-none text-dark module-link">
                                 <div class="card h-100 border bg-white shadow-sm module-card">
                                     <div class="card-body py-4">
                                         <i class="bi @module.IconClass module-icon"></i>
@@ -96,34 +113,74 @@
     </div>
 </div>
 <script>
-    $(document).ready(function () {
-        // Lấy ID tỉnh từ Razor C#
-        const userTinhId = parseInt('@sessionTinhId') || 0;
-        const $lblTenTinh = $('#txtTenTinhHienThi');
+    const SERVER_TINH_ID = parseInt('@sessionTinhId') || 0;
 
-        if (userTinhId === 0) {
-            $lblTenTinh.html('<span class="badge bg-secondary">Tất cả (Không giới hạn Tỉnh)</span>');
-            return;
+    function kiemTraTruyCap(url, e) {
+        if (e) e.preventDefault(); 
+
+        const currentCboVal = $('#cboTenTinhHienThi').val();
+        if (SERVER_TINH_ID === 0 && (!currentCboVal || currentCboVal === "0")) {
+            alert('Vui lòng lựa chọn "Đơn vị hành chính tỉnh" trước khi truy cập chức năng!');
+
+            const $cbo = $('#cboTenTinhHienThi');
+            $cbo.focus().addClass('border-danger border-2 text-danger shadow');
+
+            setTimeout(() => {
+                $cbo.removeClass('border-danger border-2 text-danger shadow');
+            }, 2000);
+
+            return false; 
         }
 
-        // Gọi API dò tên Tỉnh
+        if (idTinhDuocChon > 0) {
+            $.ajax({
+                url: '/api/auth/set-tinh',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ idTinh: idTinhDuocChon }),
+                success: function () {
+                    window.location.href = url;
+                },
+                error: function () {
+                    alert('Đã xảy ra lỗi khi đồng bộ dữ liệu Tỉnh lên hệ thống!');
+                }
+            });
+        } else {
+            window.location.href = url;
+        }
+    }
+
+    $(document).ready(function () {
+        const userTinhId = SERVER_TINH_ID;
+        const $cboTenTinh = $('#cboTenTinhHienThi');
         $.ajax({
             url: '/api/dodac/dropdown/all-tinh',
             method: 'GET',
             success: function (res) {
+                let opts = '<option value="0">-- Chọn đơn vị hành chính tỉnh --</option>';
                 if (res && res.length > 0) {
-                    const targetTinh = res.find(t => t.id === userTinhId);
-                    if (targetTinh) {
-                        $lblTenTinh.text(targetTinh.ten);
-                    } else {
-                        $lblTenTinh.text(`Mã tỉnh ID: ${userTinhId} (Chưa có tên)`);
-                    }
-                } else {
-                    $lblTenTinh.text(`Mã tỉnh ID: ${userTinhId}`);
+                    res.forEach(t => {
+                        const isSelected = (t.id === userTinhId) ? 'selected' : '';
+                        opts += `<option value="${t.id}" ${isSelected}>${t.ten}</option>`;
+                    });
                 }
+                $cboTenTinh.html(opts);
             },
             error: function () {
-                $lblTenTinh.html('<span class="text-danger">Lỗi không thể tải tên tỉnh</span>');
+                $cboTenTinh.html('<option value="0">Lỗi tải danh sách tỉnh</option>');
+            }
+        });
+        $cboTenTinh.on('change', function () {
+            const selectedTinhId = parseInt($(this).val()) || 0;
+
+            if (selectedTinhId > 0) {
+                $(this).removeClass('border-danger border-2 text-danger shadow');
+                $.ajax({
+                    url: '/api/auth/set-tinh',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ idTinh: selectedTinhId })
+                });
             }
         });
     });
