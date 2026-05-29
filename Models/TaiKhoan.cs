@@ -17,6 +17,7 @@ public partial class TaiKhoan
 
     public int? IddonViCongTac { get; set; }
 
+    public int? Idtinh { get; set; }
     public virtual ICollection<DangKyDoDacBanVe> DangKyDoDacBanVeIdnguoiDoNavigations { get; set; } = new List<DangKyDoDacBanVe>();
 
     public virtual ICollection<DangKyDoDacBanVe> DangKyDoDacBanVeIdnguoiKyNavigations { get; set; } = new List<DangKyDoDacBanVe>();

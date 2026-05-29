@@ -108,7 +108,7 @@ public partial class HeThongQuanLyVanPhongContext : DbContext
             entity.Property(e => e.Idxa).HasColumnName("IDXa");
             entity.Property(e => e.NgayHopDong).HasMaxLength(50);
             entity.Property(e => e.NguoiDangKy).HasMaxLength(255);
-            entity.Property(e => e.SeriGcn)
+            entity.Property(e => e.SeriGCN)
                 .HasMaxLength(255)
                 .HasColumnName("SeriGCN");
             entity.Property(e => e.SoDienThoai).HasMaxLength(50);
@@ -521,27 +521,27 @@ public partial class HeThongQuanLyVanPhongContext : DbContext
         modelBuilder.Entity<TaiKhoan>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__TaiKhoan__3214EC278F729199");
-
             entity.ToTable("TaiKhoan");
-
             entity.HasIndex(e => e.IdchucVu, "IX_TaiKhoan_IDChucVu");
-
             entity.HasIndex(e => e.IddonViCongTac, "IX_TaiKhoan_IDDonViCongTac");
-
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.HoVaTen).HasMaxLength(255);
             entity.Property(e => e.IdchucVu).HasColumnName("IDChucVu");
             entity.Property(e => e.IddonViCongTac).HasColumnName("IDDonViCongTac");
+            entity.Property(e => e.Idtinh).HasColumnName("IDTinh");
             entity.Property(e => e.MatKhau).HasMaxLength(255);
             entity.Property(e => e.TenTaiKhoan).HasMaxLength(255);
-
             entity.HasOne(d => d.IdchucVuNavigation).WithMany(p => p.TaiKhoans)
-                .HasForeignKey(d => d.IdchucVu)
-                .HasConstraintName("FK__TaiKhoan__IDChuc__3E52440B");
 
+                .HasForeignKey(d => d.IdchucVu)
+
+                .HasConstraintName("FK__TaiKhoan__IDChuc__3E52440B");
             entity.HasOne(d => d.IddonViCongTacNavigation).WithMany(p => p.TaiKhoans)
+
                 .HasForeignKey(d => d.IddonViCongTac)
+
                 .HasConstraintName("FK__TaiKhoan__IDDonV__3F466844");
+
         });
 
         modelBuilder.Entity<TrangThaiBanVe>(entity =>

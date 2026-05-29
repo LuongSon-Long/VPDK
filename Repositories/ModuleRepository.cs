@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using HeThongQuanLyVanPhong.Models;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HeThongQuanLyVanPhong.Repositories
 {
@@ -28,6 +30,18 @@ namespace HeThongQuanLyVanPhong.Repositories
                 .Where(m => moduleIds.Contains(m.Id))
                 .Select(m => m.TenModule ?? "")
                 .ToListAsync();
+
+        }
+
+        public async Task<List<Module>> GetModulesByTaiKhoanIdAsync(int taiKhoanId)
+        {
+            return await _context.PhanQuyenModules
+                .Include(pq => pq.IdmoduleNavigation)
+                .Where(pq => pq.IdtaiKhoan == taiKhoanId && pq.Idmodule != null)
+                .Select(pq => pq.IdmoduleNavigation!)
+                .Distinct()
+                .ToListAsync();
         }
     }
+
 }

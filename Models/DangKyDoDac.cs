@@ -27,7 +27,7 @@ public partial class DangKyDoDac
 
     public string? SoDienThoai { get; set; }
 
-    public string? SeriGcn { get; set; }
+    public string? SeriGCN { get; set; }
 
     public string? MucDichDangKy { get; set; }
 

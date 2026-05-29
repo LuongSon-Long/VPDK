@@ -90,8 +90,10 @@ namespace HeThongQuanLyVanPhong.Services
                     TenTaiKhoan = taiKhoan.TenTaiKhoan,
                     HoVaTen = taiKhoan.HoVaTen,
                     TenChucVu = userWithDetails?.IdchucVuNavigation?.TenChucVu,
+                    IdChucVu = userWithDetails?.IdchucVu,
                     TenDonViCongTac = userWithDetails?.IddonViCongTacNavigation?.TenDonVi,
                     IdDonViCongTac = userWithDetails?.IddonViCongTac,
+                    IdTinh = userWithDetails?.Idtinh,
                     Modules = moduleNames
                 }
             };
@@ -120,6 +122,7 @@ namespace HeThongQuanLyVanPhong.Services
                 HoVaTen = taiKhoan.HoVaTen,
                 TenChucVu = taiKhoan.IdchucVuNavigation?.TenChucVu,
                 TenDonViCongTac = taiKhoan.IddonViCongTacNavigation?.TenDonVi,
+                IdTinh = taiKhoan?.Idtinh,
                 Modules = moduleNames
             };
         }

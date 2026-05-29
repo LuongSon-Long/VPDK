@@ -53,7 +53,8 @@ namespace HeThongQuanLyVanPhong.Services
                 NgayTrinhKy = x.NgayTrinhKy.HasValue ? new DateTime(x.NgayTrinhKy.Value.Year, x.NgayTrinhKy.Value.Month, x.NgayTrinhKy.Value.Day) : (DateTime?)null,
                 IDNguoiKy = x.IdnguoiKy,
                 NgayKy = x.NgayKy.HasValue ? new DateTime(x.NgayKy.Value.Year, x.NgayKy.Value.Month, x.NgayKy.Value.Day) : (DateTime?)null,
-                GhiChu = x.GhiChu
+                GhiChu = x.GhiChu,
+                DonViDoDac = x.DonViDoDac
             }).ToList();
         }
 
@@ -84,12 +85,15 @@ namespace HeThongQuanLyVanPhong.Services
                 NgayTrinhKy = x.NgayTrinhKy.HasValue ? new DateTime(x.NgayTrinhKy.Value.Year, x.NgayTrinhKy.Value.Month, x.NgayTrinhKy.Value.Day) : (DateTime?)null,
                 IDNguoiKy = x.IdnguoiKy,
                 NgayKy = x.NgayKy.HasValue ? new DateTime(x.NgayKy.Value.Year, x.NgayKy.Value.Month, x.NgayKy.Value.Day) : (DateTime?)null,
-                GhiChu = x.GhiChu
+                GhiChu = x.GhiChu,
+                DonViDoDac = x.DonViDoDac
             };
         }
 
         private string XacDinhTrangThai(SaveBanVeDto dto)
         {
+            if (dto.TrangThai == "Không đủ điều kiện") return "Không đủ điều kiện";
+
             DateOnly? ngayLap = ParseToDateOnly(dto.NgayLapStr);
             DateOnly? ngayVB = ParseToDateOnly(dto.NgayVBStr);
             DateOnly? ngayTrinhKy = ParseToDateOnly(dto.NgayTrinhKyStr);
@@ -98,7 +102,7 @@ namespace HeThongQuanLyVanPhong.Services
             if (ngayKy != null) return "Đã duyệt bản vẽ";
             if (ngayTrinhKy != null) return "Đang trình ký";
             if (ngayVB != null) return "Đang xin ý kiến cơ quan liên quan";
-            if (ngayLap != null) return "Đã lập bản vẽ";
+            if (ngayLap != null) return "Đã lập bản vẽ"; 
             return "Chưa lập bản vẽ";
         }
 
@@ -129,7 +133,8 @@ namespace HeThongQuanLyVanPhong.Services
                     IdnguoiKy = dto.IDNguoiKy,
                     NgayKy = ParseToDateOnly(dto.NgayKyStr),
                     GhiChu = dto.GhiChu,
-                    TrangThai = trangThai
+                    TrangThai = trangThai,
+                    DonViDoDac = dto.DonViDoDac
                 };
 
                 await _banVeRepo.AddAsync(banVe);
@@ -162,6 +167,7 @@ namespace HeThongQuanLyVanPhong.Services
                 existItem.NgayKy = ParseToDateOnly(dto.NgayKyStr);
                 existItem.GhiChu = dto.GhiChu;
                 existItem.TrangThai = trangThai;
+                existItem.DonViDoDac = dto.DonViDoDac;
 
                 _banVeRepo.Update(existItem);
                 await _banVeRepo.SaveChangesAsync();
