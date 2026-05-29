@@ -131,22 +131,21 @@
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light"><tr><th class="ps-3" style="width:250px">Loại bản vẽ</th><th class="text-center" style="width:120px">Tổng số bản vẽ</th><th>Chi tiết theo trạng thái</th></tr></thead>
-                            <tbody>
-        `;
-        if (thongKeBanVe.length === 0) {
-            html += '<tr><td colspan="3" class="text-center py-5 text-muted">Không tìm thấy dữ liệu bản vẽ phù hợp với điều kiện lọc.</td></tr>';
-        } else {
-            thongKeBanVe.forEach(item => {
-                html += `<tr><td class="ps-3">${escapeHtml(item.tenLoai)}</td><td class="text-center">${item.tongSo}</td><td>`;
-                if (item.chiTietTrangThai && item.chiTietTrangThai.length) {
-                    item.chiTietTrangThai.forEach(st => {
-                        html += `<span class="badge border text-dark me-1">${escapeHtml(st.tenTrangThai)}: ${st.soLuong}</span>`;
-                    });
-                }
-                html += `</td></tr>`;
-            });
-        }
-        html += `
+                            <tbody>`;
+                                if (thongKeBanVe.length === 0) {
+                                    html += '<tr><td colspan="3" class="text-center py-5 text-muted">Không tìm thấy dữ liệu bản vẽ phù hợp với điều kiện lọc.</td></tr>';
+                                } else {
+                                    thongKeBanVe.forEach(item => {
+                                        html += `<tr><td class="ps-3">${escapeHtml(item.tenLoai)}</td><td class="text-center">${item.tongSo}</td><td>`;
+                                        if (item.chiTietTrangThai && item.chiTietTrangThai.length) {
+                                            item.chiTietTrangThai.forEach(st => {
+                                                html += `<span class="badge border text-dark me-1">${escapeHtml(st.tenTrangThai)}: ${st.soLuong}</span>`;
+                                            });
+                                        }
+                                        html += `</td></tr>`;
+                                    });
+                                }
+                                html += `
                             </tbody>
                         </table>
                     </div>

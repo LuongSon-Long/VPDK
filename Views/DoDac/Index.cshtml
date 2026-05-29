@@ -24,7 +24,7 @@
 <div class="row">
     <div class="col-md-3">
         <div class="list-group shadow-sm" id="menuDoDac">
-            @if (true)
+            @if (tenChucVu=="TiepNhan")
             {
                 <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
                    onclick="loadTask('TiepNhan', this)">Tiếp nhận hồ sơ</a>
@@ -37,7 +37,7 @@
                onclick="moModalQuanLySoHieu()"><i class="bi bi-list-ol me-2"></i>Quản lý số hiệu bản vẽ</a>
             <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
                onclick="loadTask('BaoCao', this)">Tổng hợp, báo cáo</a>
-            @if (true)
+            @if (tenChucVu == "TiepNhan")
             {
                 <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
                    onclick="moModalXuatDSBanVe()">
@@ -336,11 +336,34 @@
 
 <!-- Loader overlay -->
 <div id="loader-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-     background:rgba(255,255,255,0.7); z-index:9999; justify-content:center; align-items:center; flex-direction:column;">
+    background:rgba(255,255,255,0.7); z-index:9999; justify-content:center; align-items:center; flex-direction:column;">
     <div class="clock-loader"></div>
     <div class="mt-3 fw-bold text-success">Đang xử lý dữ liệu, vui lòng đợi...</div>
 </div>
 
+<div id="khayNhoTamWrapper" class="position-fixed bottom-0 start-0 m-3 shadow-lg rounded border bg-white" style="z-index: 1050; width: 500px; display: none;">
+    <div class="card-header bg-dark text-white p-0">
+        <ul class="nav nav-tabs border-0" role="tablist">
+            <li class="nav-item"><button class="nav-link active small fw-bold" data-bs-toggle="tab" data-bs-target="#tabKhayHoSo">Hồ sơ</button></li>
+            <li class="nav-item"><button class="nav-link small fw-bold" data-bs-toggle="tab" data-bs-target="#tabKhayBanVe">Bản vẽ</button></li>
+            <li class="ms-auto p-1"><button class="btn-close btn-close-white" onclick="dongKhayNho()"></button></li>
+        </ul>
+    </div>
+    <div class="card-body p-2" style="max-height: 200px; overflow-y: auto;">
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="tabKhayHoSo">
+                <ul id="khay_UlHoSo" class="list-group list-group-flush small"></ul>
+            </div>
+            <div class="tab-pane fade" id="tabKhayBanVe">
+                <ul id="khay_UlBanVe" class="list-group list-group-flush small"></ul>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer bg-light p-2 d-flex justify-content-between">
+        <button class="btn btn-xs btn-outline-danger" onclick="xoaSachKhayNho()">Xóa hết</button>
+        <button class="btn btn-xs btn-success fw-bold" onclick="xuatKhayNhoTam()">Xuất Excel</button>
+    </div>
+</div>
 <style>
     .btn-xs {
         padding: 0.2rem 0.4rem;
@@ -380,6 +403,7 @@
 </style>
 
 <script>
+    const CURRENT_USER_ROLE = '@tenChucVu';
     // ============================================================
     // STATE
     // ============================================================
@@ -437,6 +461,11 @@
     $(document).ready(function () {
         loadDanhSachTinhVaoDropdowns();
         loadTask('XuLy', null);
+
+        // Kích hoạt khay nhớ tạm ở đây
+        if (typeof capNhatGiaoDienKhayNho === "function") {
+            capNhatGiaoDienKhayNho();
+        }
 
         $(document).on('keyup', '#txtSearch', function () {
             filterTable($(this).val().toLowerCase());
@@ -504,17 +533,34 @@
                 break;
 
             case 'BaoCao':
-    try {
-        const res = await fetch('/DoDac/FormBaoCao');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        $('#vungNoiDung').html(await res.text());
-        await bc_Init();
-    } catch(e) {
-        $('#vungNoiDung').html(
-            `<div class="alert alert-danger m-3">Lỗi tải báo cáo: ${e.message}</div>`
-        );
-    }
-    break;
+                try {
+                    const res = await fetch('/DoDac/FormBaoCao');
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                    // 1. Đổ HTML vào vùng chứa
+                    const htmlText = await res.text();
+                    const vungNoiDung = document.getElementById('vungNoiDung');
+                    vungNoiDung.innerHTML = htmlText;
+
+                    // 2. Tìm và kích hoạt lại các thẻ script bị ngủ đông trong file partial
+                    const scripts = vungNoiDung.querySelectorAll('script');
+                    scripts.forEach(oldScript => {
+                        const newScript = document.createElement('script');
+                        newScript.text = oldScript.text;
+                        document.body.appendChild(newScript).parentNode.removeChild(newScript);
+                    });
+
+                    // 3. Gọi hàm khởi tạo sau khi script đã nạp vào bộ nhớ bộ biên dịch
+                    setTimeout(() => {
+                        if (typeof bc_Init === "function") {
+                            bc_Init();
+                        }
+                    }, 50);
+
+                } catch (e) {
+                    $('#vungNoiDung').html(`<div class="alert alert-danger m-3">Lỗi tải báo cáo: ${e.message}</div>`);
+                }
+                break;
         }
     }
 
@@ -564,25 +610,62 @@
                     <span class="small">Ngày hẹn: <b>${ngayYeuCau}</b></span>`;
 
                 // ── Thông tin xử lý ──────────────────────────────────
-                const badgeDo = hs.ngayDo
-                    ? `<span class="badge bg-success">Đã đo (${formatDisplayDate(hs.ngayDo)})</span>`
-                    : `<span class="badge bg-danger">Chưa đo</span>`;
+                let badgeDo = '';
+                if (hs.ngayDo) {
+                    if (hs.ngayYeuCau) {
+                        const dateYeuCau = new Date(String(hs.ngayYeuCau).split('T')[0]);
+                        const dateNgayDo = new Date(String(hs.ngayDo).split('T')[0]);
+                        // Tính độ lệch ngày: Ngày đo - Ngày hẹn
+                        const diffDaysMeasured = Math.round((dateNgayDo - dateYeuCau) / 86400000);
+                        if (diffDaysMeasured > 0) {
+                            // Ngày đo lớn hơn ngày hẹn -> Bị trễ hạn đo thực địa
+                            badgeDo = `<span class="badge bg-danger">Đã đo, kiểm tra: (${formatDisplayDate(hs.ngayDo)}) - Trễ ${diffDaysMeasured} ngày</span>`;
+                        } else if (diffDaysMeasured < 0) {
+                            // Ngày đo nhỏ hơn ngày hẹn -> Đo sớm trước hạn
+                            badgeDo = `<span class="badge bg-success">Đã đo, kiểm tra: (${formatDisplayDate(hs.ngayDo)}) - Trước hạn ${Math.abs(diffDaysMeasured)} ngày</span>`;
+                        } else {
+                            // Ngày đo bằng đúng ngày hẹn
+                            badgeDo = `<span class="badge bg-success">Đã đo, kiểm tra: (${formatDisplayDate(hs.ngayDo)}) - Đúng hạn</span>`;
+                        }
+                    } else {
+                        // Có ngày đo nhưng hồ sơ chưa được cấu hình ngày hẹn yêu cầu
+                        badgeDo = `<span class="badge bg-success">Đã đo, kiểm tra: (${formatDisplayDate(hs.ngayDo)})</span>`;
+                    }
+                } else {
+                    // Nếu hồ sơ CHƯA ĐO
+                    badgeDo = `<span class="badge bg-secondary text-dark border">Chưa đo</span>`;
+                }
 
                 let hanCuoi = '';
-                if (!hs.ngayTraKetQua) {
-                    if (hs.ngayYeuCau) {
-                        const diffDays = diffDay(hs.ngayYeuCau);
-                        hanCuoi = diffDays < 0
-                            ? `<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Quá hạn: ${Math.abs(diffDays)} ngày</span>`
-                            : `<span class="text-success small">Còn ${diffDays} ngày</span>`;
+                const dateYeuCau = hs.ngayYeuCau ? new Date(String(hs.ngayYeuCau).split('T')[0]) : null;
+                const dateNgayDo = hs.ngayDo ? new Date(String(hs.ngayDo).split('T')[0]) : null;
+                const dateHomNay = new Date(); dateHomNay.setHours(0, 0, 0, 0);
+
+                if (dateYeuCau) {
+                    if (dateNgayDo) {
+                        // Đã đo rồi thì hiển thị tổng quan tiến độ chung là đo xong
+                        hanCuoi = `<span class="text-success small"><i class="bi bi-check-circle-fill"></i> Công việc hoàn thành</span>`;
+                    } else {
+                        // Chưa đo: tính thời gian từ ngày hôm nay đến ngày hẹn xem còn bao nhiêu ngày
+                        const diffDaysToday = Math.round((dateYeuCau - dateHomNay) / 86400000);
+                        if (diffDaysToday < 0) {
+                            hanCuoi = `<span class="text-danger fw-bold"><i class="bi bi-calendar-x-fill"></i> Quá hạn đo, kiểm tra: ${Math.abs(diffDaysToday)} ngày</span>`;
+                        } else {
+                            hanCuoi = `<span class="text-primary small">Còn ${diffDaysToday} ngày để đo, kiểm tra</span>`;
+                        }
                     }
-                    hanCuoi += `<br><span class="text-muted small">Chưa trả KQ</span>`;
                 } else {
-                    hanCuoi = `<span class="badge bg-secondary">Hoàn thành (${formatDisplayDate(hs.ngayTraKetQua)})</span>`;
+                    hanCuoi = `<span class="text-muted small">Chưa có ngày hẹn</span>`;
+                }
+
+                if (hs.ngayTraKetQua) {
+                    hanCuoi += `<br><span class="badge bg-light text-dark border mt-1">Đã trả KQ: ${formatDisplayDate(hs.ngayTraKetQua)}</span>`;
+                } else {
+                    hanCuoi += `<br><span class="text-muted/50 small">Chưa trả KQ</span>`;
                 }
 
                 const colXuLy = `
-                    <span class="small"><i class="bi bi-person-circle"></i>
+                    <span class="small"><i class="bi bi-person-circle"></i>Phân công giải quyết:
                         ${hs.tenNguoiXuLy || 'Chưa phân công'}</span><br>
                     <div class="mt-1">${badgeDo}</div>
                     <div class="mt-1">${hanCuoi}</div>`;
@@ -592,6 +675,7 @@
                 const isOwner      = hs.idTaiKhoan === SESSION_USER_ID;
                 const isNotFinished = hs.trangThaiDo !== 'KetThuc';
                 const canEdit      = isOwner && isNotFinished;
+                const labelHoSo = (hs.soHopDong ? hs.soHopDong : 'Chưa có HĐ') + ' - ' + (hs.nguoiDangKy || 'Không tên');
 
                 const btnXuLy = canEdit
                     ? `<button class="btn btn-xs btn-outline-primary mb-1" onclick="openXuLy(${hs.id})" title="Xử lý hồ sơ">
@@ -612,6 +696,11 @@
                         </button>
                         <button class="btn btn-xs btn-outline-success mb-1" onclick="openBanVeModal(${hs.id})" title="Bản vẽ">
                             <i class="bi bi-map"></i> Bản vẽ
+                        </button>
+                            <button class="btn btn-xs btn-outline-info mb-1"
+                                onclick="themVaoKhay('hoso', ${hs.id}, '${labelHoSo.replace(/'/g, "\\'")}')"
+                                title="Đưa vào khay xuất Excel hồ sơ">
+                            <i class="bi bi-clipboard-plus"></i> Đưa vào khay xuất DS
                         </button>
                         <button class="btn btn-xs btn-outline-warning" onclick="moModalThanhLy(${hs.id})" title="Tạo văn bản Word">
                             <i class="bi bi-file-word"></i> Tạo Văn bản (Word)
@@ -768,21 +857,32 @@
     // ============================================================
     // MỞ MODAL XỬ LÝ HỒ SƠ → render JS (sẽ hoàn thiện khi có Partial)
     // ============================================================
-        // Index.cshtml - openXuLy() gọi endpoint trả về Partial HTML:
-        async function openXuLy(id) {
+    // Index.cshtml - openXuLy() gọi endpoint trả về Partial HTML:
+    async function openXuLy(id, isReadOnly = false) {
         currentHoSoId = id;
         $('#modalXuLy').modal('show');
         showLoader('#contentXuLy');
+
         try {
             const res = await fetch(`/DoDac/FormXuLy`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             $('#contentXuLy').html(await res.text());
-            // Gọi hàm init của Partial sau khi HTML đã render
+
+            // GỌI HÀM CŨ CỦA BẠN (vẫn giữ nguyên tham số)
             await fxl_Init(id);
+
+            // XỬ LÝ KHÓA FORM SAU KHI INIT XONG
+            if (isReadOnly === true) {
+                // Đợi một chút để PartialView render xong
+                setTimeout(() => {
+                    $('#fxl_Content input, #fxl_Content select, #fxl_Content textarea, #fxl_Content button').prop('disabled', true);
+                    $('#fxl_BtnSave').hide();
+                    $('#fxl_BtnGroupXuLy').css({ 'pointer-events': 'none', 'opacity': '0.5' });
+                    $('#fxl_LeftButtons').hide();
+                }, 100);
+            }
         } catch (e) {
-            $('#contentXuLy').html(
-                `<div class="alert alert-danger m-3">Lỗi tải form: ${e.message}</div>`
-            );
+            $('#contentXuLy').html(`<div class="alert alert-danger m-3">Lỗi tải form: ${e.message}</div>`);
         }
     }
 
@@ -1078,15 +1178,16 @@
         }
     }
 
-    // ============================================================
     // TRA CỨU → POST /api/dodac/baocao/chitiet
-    // ============================================================
     async function renderTraCuu() {
         showLoader('#vungNoiDung');
         try {
-            const dsDonVi = await apiGet('/api/dodac/dropdown/all-donvi');
-            let optsDonVi = '<option value="0">-- Tất cả đơn vị --</option>';
-            (dsDonVi || []).forEach(d => { optsDonVi += `<option value="${d.id}">${d.ten}</option>`; });
+            const idTinh = @(HttpContextAccessor.HttpContext?.Session?.GetInt32("UserTinhId") ?? 0);
+            const dsDonVi = await apiGet(`/api/dodac/dropdown/donvi-by-tinh/${idTinh}`);
+            let optsDonVi = '<option value="0">-- Tất cả đơn vị thuộc tỉnh --</option>';
+            (dsDonVi || []).forEach(d => {
+                optsDonVi += `<option value="${d.id}">${d.tenDonVi || d.ten}</option>`;
+            });
 
             const now = new Date();
             const tuNgayDef  = `01/01/${now.getFullYear()}`;
@@ -1096,19 +1197,16 @@
                 <div class="p-3">
                     <div class="row g-2 mb-3">
                         <div class="col-md-3">
-                            <input type="text" id="tc_TuKhoa" class="form-control"
-                                placeholder="Tên người đăng ký, số HĐ...">
-                        </div>
-                        <div class="col-md-2">
-                            <input type="text" id="tc_TuNgay" class="form-control"
-                                placeholder="Từ ngày" value="${tuNgayDef}">
-                        </div>
-                        <div class="col-md-2">
-                            <input type="text" id="tc_DenNgay" class="form-control"
-                                placeholder="Đến ngày" value="${denNgayDef}">
+                            <input type="text" id="tc_TuKhoa" class="form-control" placeholder="Tìm ID, Tên người ĐK, Số HĐ...">
                         </div>
                         <div class="col-md-3">
-                            <select id="tc_IDDonVi" class="form-select">${optsDonVi}</select>
+                            <input type="text" id="tc_TenChuSD" class="form-control" placeholder="Tìm Tên chủ tại Bản vẽ...">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="text" id="tc_TuNgay" class="form-control" placeholder="Từ ngày" value="${tuNgayDef}">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="text" id="tc_DenNgay" class="form-control" placeholder="Đến ngày" value="${denNgayDef}">
                         </div>
                         <div class="col-md-2">
                             <button class="btn btn-primary w-100" onclick="thucHienTraCuu()">
@@ -1120,21 +1218,39 @@
                         <p class="text-center text-muted">Nhập điều kiện và nhấn Tìm kiếm</p>
                     </div>
                 </div>`);
+
+            $(document).off('input', '#tc_TuKhoa, #tc_TenChuSD');
+
+            $(document).on('input', '#tc_TuKhoa', function () {
+                if ($(this).val().length > 0) $('#tc_TenChuSD').val('');
+            });
+
+            $(document).on('input', '#tc_TenChuSD', function () {
+                if ($(this).val().length > 0) $('#tc_TuKhoa').val('');
+            });
+            $(document).off('keypress', '#tc_TuKhoa, #tc_TenChuSD');
+            $(document).on('keypress', '#tc_TuKhoa, #tc_TenChuSD', function (e) {
+                if (e.which === 13) {
+                    e.preventDefault(); 
+                    thucHienTraCuu();   
+                }
+            });
         } catch (e) {
             $('#vungNoiDung').html('<div class="alert alert-danger m-3">Lỗi khởi tạo tra cứu: ' + e.message + '</div>');
         }
     }
 
- /*   async function thucHienTraCuu() {
+/*   async function thucHienTraCuu() {
         showLoader('#vungKetQuaTraCuu');
-        // FIX: BaoCaoRequestDto chỉ có { idTinh, idDonVi, tuNgay, denNgay }
-        // Không có tuKhoa/nam — dùng khoảng thời gian rộng, filter kết quả phía client
-        const tuKhoa  = ($('#tc_TuKhoa').val() || '').toLowerCase();
+        const idTinhSession = @(HttpContextAccessor.HttpContext?.Session?.GetInt32("UserTinhId") ?? 0);
         const idDonVi = parseInt($('#tc_IDDonVi').val()) || 0;
+        const tuKhoa = ($('#tc_TuKhoa').val() || '').toLowerCase(); // Lấy từ khóa
+
         const body = {
+            idTinh: idTinhSession > 0 ? idTinhSession : null,
             idDonVi: idDonVi || null,
-            tuNgay:  $('#tc_TuNgay').val() || '01/01/2020',
-            denNgay: $('#tc_DenNgay').val() || `31/12/${new Date().getFullYear()}`
+            tuNgay: $('#tc_TuNgay').val() || '01/01/2020',
+            denNgay: $('#tc_DenNgay').val() || '31/12/2026'
         };
 
         try {
@@ -1142,13 +1258,19 @@
             let data = await apiPost('/api/dodac/baocao/chitiet', body);
             if (!data) return;
 
-            // Filter phía client theo từ khóa nếu có
+            // BỔ SUNG ĐIỀU KIỆN LỌC ĐA NĂNG
             if (tuKhoa) {
-                data = data.filter(hs =>
-                    (hs.soHopDong   || '').toLowerCase().includes(tuKhoa) ||
-                    (hs.nguoiDangKy || '').toLowerCase().includes(tuKhoa) ||
-                    (hs.tenXa       || '').toLowerCase().includes(tuKhoa)
-                );
+                data = data.filter(hs => {
+                    const idStr = hs.id ? hs.id.toString() : "";
+                    const hopDongStr = (hs.soHopDong || '').toLowerCase();
+                    const tenNguoiDkStr = (hs.nguoiDangKy || '').toLowerCase();
+                    const tenXaStr = (hs.tenXa || '').toLowerCase();
+
+                    return idStr === tuKhoa ||
+                        hopDongStr.includes(tuKhoa) ||
+                        tenNguoiDkStr.includes(tuKhoa) ||
+                        tenXaStr.includes(tuKhoa);
+                });
             }
 
             if (data.length === 0) {
@@ -1156,118 +1278,120 @@
                 return;
             }
 
-                const rows = data.map((hs, i) => `
-        <tr>
-            <td>${i + 1}</td>
-            <td class="fw-bold text-primary">${hs.soHopDong || ''}</td>
-            <td>${hs.nguoiDangKy || ''}</td>
-            <td>${hs.ngayHopDong ? formatDisplayDate(hs.ngayHopDong) : ''}</td>
-            <td>${hs.diaChiThuaDat || ''}</td>
-            <td>${hs.tenXa || ''}</td>
-            <td>${hs.tenDonViCongTac || ''}</td>
-            <td><span class="badge bg-secondary">${hs.trangThaiDo || ''}</span></td>
-            <td>${hs.tenNguoiXuLy || '---'}</td>
-            <td>${hs.ngayYeuCau ? formatDisplayDate(hs.ngayYeuCau) : ''}</td>
-            <td>${hs.ngayDo ? formatDisplayDate(hs.ngayDo) : ''}</td>
-            <td>${hs.ngayTraKetQua ? formatDisplayDate(hs.ngayTraKetQua) : ''}</td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary" onclick="openXuLy(${hs.id})" title="Xem & chỉnh sửa">
-                    <i class="bi bi-pencil-square"></i>
-                </button>
-            </td>
-        </tr>`).join('');
-
-    // Header cũng cập nhật lại
-    $('#vungKetQuaTraCuu').html(`
-        <div class="table-responsive">
-            <table class="table table-sm table-hover table-bordered" style="font-size:.82rem;">
-                <thead class="table-light">
+            // GIỮ NGUYÊN CẤU TRÚC RENDER ROWS CỦA BẠN
+            const rows = data.map((hs, i) => `
                     <tr>
-                        <th>#</th>
-                        <th>Số HĐ</th>
-                        <th>Chủ sử dụng</th>
-                        <th>Ngày ĐK</th>
-                        <th>Địa chỉ</th>
-                        <th>Xã/Phường</th>
-                        <th>Đơn vị</th>
-                        <th>Trạng thái</th>
-                        <th>Người GQ</th>
-                        <th>Ngày hẹn</th>
-                        <th>Ngày đo</th>
-                        <th>Ngày trả KQ</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-            </table>
-        </div>`);
+                        <td>${i + 1}</td>
+                        <td class="fw-bold text-primary">${hs.soHopDong || ''}</td>
+                        <td>${hs.nguoiDangKy || ''}</td>
+                        <td>${hs.ngayHopDong ? formatDisplayDate(hs.ngayHopDong) : ''}</td>
+                        <td>${hs.diaChiThuaDat || ''}</td>
+                        <td>${hs.tenXa || ''}</td>
+                        <td>${hs.tenDonViCongTac || ''}</td>
+                        <td><span class="badge bg-secondary">${hs.trangThaiDo || ''}</span></td>
+                        <td>${hs.tenNguoiXuLy || '---'}</td>
+                        <td>${hs.ngayYeuCau ? formatDisplayDate(hs.ngayYeuCau) : ''}</td>
+                        <td>${hs.ngayDo ? formatDisplayDate(hs.ngayDo) : ''}</td>
+                        <td>${hs.ngayTraKetQua ? formatDisplayDate(hs.ngayTraKetQua) : ''}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary" onclick="openXuLy(${hs.id})" title="Xem & chỉnh sửa">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                        </td>
+                    </tr>`).join('');
 
+            // RENDER BẢNG VỚI CẤU TRÚC BẠN ĐANG DÙNG
             $('#vungKetQuaTraCuu').html(`
-    <div class="table-responsive">
-        <table class="table table-sm table-hover table-bordered" style="font-size:.82rem;">
-            <thead class="table-light">
-                <tr>
-                    <th>#</th>
-                    <th>Số HĐ</th>
-                    <th>Chủ sử dụng</th>
-                    <th>Ngày ĐK</th>
-                    <th>Địa chỉ</th>
-                    <th>Xã/Phường</th>
-                    <th>Đơn vị</th>
-                    <th>Trạng thái</th>
-                    <th>Người GQ</th>
-                    <th>Ngày hẹn</th>
-                    <th>Ngày đo</th>
-                    <th>Ngày trả KQ</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-        </table>
-    </div>`);
-        } catch (e) {
-            $('#vungKetQuaTraCuu').html('<div class="alert alert-danger">Lỗi tìm kiếm: ' + e.message + '</div>');
-        }
-    }*/
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover table-bordered" style="font-size:.82rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Số HĐ</th>
+                                    <th>Người, đơn vị đăng ký</th>
+                                    <th>Ngày ĐK</th>
+                                    <th>Địa chỉ</th>
+                                    <th>Xã/Phường</th>
+                                    <th>Đơn vị</th>
+                                    <th>Trạng thái</th>
+                                    <th>Người GQ</th>
+                                    <th>Ngày hẹn</th>
+                                    <th>Ngày đo</th>
+                                    <th>Ngày trả KQ</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>`);
 
-        async function thucHienTraCuu() {
-        showLoader('#vungKetQuaTraCuu');
-        const tuKhoa  = ($('#tc_TuKhoa').val() || '').toLowerCase();
-        const idDonVi = parseInt($('#tc_IDDonVi').val()) || 0;
-        const body = {
-            idDonVi: idDonVi || null,
-            tuNgay:  $('#tc_TuNgay').val() || '01/01/2020',
-            denNgay: $('#tc_DenNgay').val() || `31/12/${new Date().getFullYear()}`
-        };
-
-        try {
-            let data = await apiPost('/api/dodac/baocao/chitiet', body);
-            if (!data) return;
-
-            if (tuKhoa) {
-                data = data.filter(hs =>
-                    (hs.soHopDong   || '').toLowerCase().includes(tuKhoa) ||
-                    (hs.nguoiDangKy || '').toLowerCase().includes(tuKhoa) ||
-                    (hs.tenXa       || '').toLowerCase().includes(tuKhoa)
-                );
-            }
-
-            allTraCuuData     = data;   // ← lưu riêng
-            currentTraCuuPage = 1;
-            renderBangTraCuu(allTraCuuData);
         } catch (e) {
             $('#vungKetQuaTraCuu').html('<div class="alert alert-danger">Lỗi tìm kiếm: ' + e.message + '</div>');
         }
     }
+}*/
 
+    async function thucHienTraCuu() {
+        showLoader('#vungKetQuaTraCuu');
+
+        const tuKhoa = ($('#tc_TuKhoa').val() || '').trim().toLowerCase();
+        const tenChuSD = ($('#tc_TenChuSD').val() || '').trim().toLowerCase();
+        const idDonVi = parseInt($('#tc_IDDonVi').val()) || 0;
+
+        const body = {
+            idDonVi: idDonVi > 0 ? idDonVi : null,
+            tuNgay: $('#tc_TuNgay').val(),
+            denNgay: $('#tc_DenNgay').val(),
+            tenChuSD: tenChuSD // Gửi lên để C# lọc ở tầng DB
+        };
+
+        try {
+            // C# đã lọc sẵn theo TenChuSD, nên không cần filter lại ở JS nữa
+            let data = await apiPost('/api/dodac/baocao/chitiet', body);       
+           
+
+            if (!data || data.length === 0) {
+                $('#vungKetQuaTraCuu').html('<p class="text-center text-muted">Không tìm thấy kết quả.</p>');
+                return;
+            }
+
+            // Lọc theo từ khóa (TuKhoa) ở phía Client nếu cần
+            if (tuKhoa) {
+                data = data.filter(hs => {
+                    const idStr = (hs.id || '').toString();
+                    const hopDongStr = (hs.soHopDong || '').toLowerCase();
+                    const nguoiDkStr = (hs.nguoiDangKy || '').toLowerCase();
+                    const tenXaStr = (hs.tenXa || '').toLowerCase();
+
+                    return idStr.includes(tuKhoa) ||
+                           hopDongStr.includes(tuKhoa) ||
+                           nguoiDkStr.includes(tuKhoa) ||
+                           tenXaStr.includes(tuKhoa);
+                });
+            }
+
+            allTraCuuData = data;
+            currentTraCuuPage = 1;
+
+            if (allTraCuuData.length === 0) {
+                $('#vungKetQuaTraCuu').html('<p class="text-center text-muted">Không tìm thấy kết quả theo từ khóa.</p>');
+            } else {
+                renderBangTraCuu(allTraCuuData);
+            }
+
+        } catch (e) {
+            console.error("Lỗi tại hàm thucHienTraCuu:", e);
+            $('#vungKetQuaTraCuu').html('<div class="alert alert-danger">Lỗi tìm kiếm: ' + e.message + '</div>');
+        }
+    }
         // HÀM MỚI: renderBangTraCuu — phân trang riêng cho Tra cứu
     // ============================================================
     function renderBangTraCuu(data) {
-        const pageSize   = parseInt($('#main_PageSize').val()) || 10;
-        const total      = data.length;
+        const pageSize = parseInt($('#main_PageSize').val()) || 10;
+        const total = data.length;
         const totalPages = Math.ceil(total / pageSize);
-        const page       = Math.min(currentTraCuuPage, totalPages || 1);
-        const paged      = data.slice((page - 1) * pageSize, page * pageSize);
+        const page = Math.min(currentTraCuuPage, totalPages || 1);
+        const paged = data.slice((page - 1) * pageSize, page * pageSize);
 
         if (total === 0) {
             $('#vungKetQuaTraCuu').html('<p class="text-center text-muted">Không tìm thấy kết quả.</p>');
@@ -1277,22 +1401,35 @@
         const rows = paged.map((hs, i) => `
             <tr>
                 <td>${(page - 1) * pageSize + i + 1}</td>
-                <td class="fw-bold text-primary">${hs.soHopDong || ''}</td>
+                <td class="fw-bold text-primary text-nowrap">${hs.soHopDong || ''}</td>
                 <td>${hs.nguoiDangKy || ''}</td>
-                <td>${hs.ngayHopDong ? formatDisplayDate(hs.ngayHopDong) : ''}</td>
+                <td class="text-nowrap">${hs.ngayHopDong ? formatDisplayDate(hs.ngayHopDong) : ''}</td>
                 <td>${hs.diaChiThuaDat || ''}</td>
                 <td>${hs.tenXa || ''}</td>
                 <td>${hs.tenDonViCongTac || ''}</td>
-                <td><span class="badge bg-secondary">${hs.trangThaiDo || ''}</span></td>
-                <td>${hs.tenNguoiXuLy || '---'}</td>
-                <td>${hs.ngayYeuCau ? formatDisplayDate(hs.ngayYeuCau) : ''}</td>
-                <td>${hs.ngayDo ? formatDisplayDate(hs.ngayDo) : ''}</td>
-                <td>${hs.ngayTraKetQua ? formatDisplayDate(hs.ngayTraKetQua) : ''}</td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary" onclick="openXuLy(${hs.id})">
-                        <i class="bi bi-pencil-square"></i>
+
+                <td>
+                    <span class="badge bg-secondary">${hs.trangThaiDo || 'Chưa xác định'}</span>
+                    <div class="small text-muted mt-1 text-nowrap">
+                        <i class="bi bi-person-badge"></i>Đang xử lý: ${hs.tenNguoiXuLy || '---'}
+                    </div>
+                </td>
+
+                <td class="small">${hs.tenNguoiDo || '---'}</td>
+
+                <td class="text-nowrap">${hs.ngayYeuCau ? formatDisplayDate(hs.ngayYeuCau) : ''}</td>
+                <td class="text-nowrap">${hs.ngayDo ? formatDisplayDate(hs.ngayDo) : ''}</td>
+                <td class="text-nowrap">${hs.ngayTraKetQua ? formatDisplayDate(hs.ngayTraKetQua) : ''}</td>
+
+                <td class="text-center text-nowrap">
+                    <button class="btn btn-sm btn-outline-success" onclick="openXuLy(${hs.id}, true)" title="Mở đăng ký">
+                        <i class="bi bi-map"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="openBanVeModal(${hs.id})" title="Mở bản vẽ">
+                        <i class="bi bi-map"></i>
                     </button>
                 </td>
+                    
             </tr>`).join('');
 
         // ── Phân trang ──────────────────────────────────────────────
@@ -1331,12 +1468,14 @@
 
         $('#vungKetQuaTraCuu').html(`
             <div class="table-responsive">
-                <table class="table table-sm table-hover table-bordered" style="font-size:.82rem;">
-                    <thead class="table-light">
+                <table class="table table-sm table-hover table-bordered align-middle" style="width: 100%;">
+                    <thead class="table-light text-nowrap">
                         <tr>
-                            <th>#</th><th>Số HĐ</th><th>Chủ sử dụng</th><th>Ngày ĐK</th>
-                            <th>Địa chỉ</th><th>Xã/Phường</th><th>Đơn vị</th><th>Trạng thái</th>
-                            <th>Người GQ</th><th>Ngày hẹn</th><th>Ngày đo</th><th>Ngày trả KQ</th><th></th>
+                            <th>#</th><th>Số HĐ</th><th>Đăng ký</th><th>Ngày ĐK</th>
+                            <th>Địa chỉ</th><th>Xã, phường</th><th>Đơn vị thực hiện</th>
+                            <th>Trạng thái & Người XL</th>
+                            <th>Người GQ</th>
+                            <th>Ngày hẹn</th><th>Ngày đo</th><th>Ngày trả</th><th>BV</th>
                         </tr>
                     </thead>
                     <tbody>${rows}</tbody>
@@ -1433,24 +1572,35 @@
         let html = '';
 
         // ── Thống kê theo trạng thái ─────────────────────────────
-        if (data.trangThai && data.trangThai.length > 0) {
-            html += `<h6 class="fw-bold text-muted mb-2">THEO TRẠNG THÁI HỒ SƠ</h6>
-                <div class="row g-2 mb-4">`;
-            data.trangThai.forEach(tt => {
-                html += `
-                <div class="col-md-3 col-6">
-                    <div class="card border-0 shadow-sm text-center p-2"
-                        style="border-left: 4px solid ${tt.mauSac || '#6c757d'} !important;">
-                        <div class="h4 fw-bold mb-0" style="color:${tt.mauSac || '#6c757d'}">${tt.soLuong}</div>
-                        <div class="small text-muted">${tt.tenTrangThai}</div>
-                        <div class="mt-1" style="font-size:.75rem;">
-                            <span class="text-success">Còn hạn: ${tt.conHan}</span> |
-                            <span class="text-danger">Quá hạn: ${tt.quaHan}</span>
-                        </div>
-                    </div>
-                </div>`;
+        if (data.canBo && data.canBo.length > 0) {
+            html += `<h6 class="fw-bold text-secondary mb-3">
+                    <i class="bi bi-people me-2"></i>THỐNG KÊ CHI TIẾT THEO CÁN BỘ XỬ LÝ
+                </h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-sm table-hover border align-middle">
+                        <thead class="table-light small">
+                            <tr>
+                                <th class="ps-3">Họ và tên cán bộ</th>
+                                <th class="text-center" style="width: 120px;">Tổng số hồ sơ</th>
+                                <th class="text-center text-primary" style="width: 120px;">Đã đo đạc</th>
+                                <th class="text-center text-danger" style="width: 160px;">Quá hạn đo (Đã/Chưa đo)</th>
+                                <th class="text-center text-success" style="width: 120px;">Đã trả KQ</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">`;
+
+            data.canBo.forEach(cb => {
+                // Đồng bộ chính xác theo các thuộc tính chữ thường (CamelCase) mà API JSON trả về
+                html += `<tr>
+                <td class="ps-3"><b>${cb.tenCanBo || 'Chưa phân công'}</b></td>
+                <td class="text-center fw-bold text-dark">${cb.tong || 0}</td>
+                <td class="text-center text-primary">${cb.daDoDac || 0}</td>
+                <td class="text-center fw-bold text-danger">${cb.quaHanDo || 0}</td>
+                <td class="text-center text-success">${cb.daTraKetQua || 0}</td>
+            </tr>`;
             });
-            html += '</div>';
+
+            html += '</tbody></table></div>';
         }
 
         // ── Thống kê theo cán bộ ──────────────────────────────────
@@ -1575,19 +1725,51 @@
 
     async function loadDonViTheoTinh(idTinh, targetSelectId) {
         const $sel = $(`#${targetSelectId}`);
-        if (!idTinh) { $sel.html('<option value="0">-- Tất cả đơn vị --</option>'); return; }
+        if (!idTinh) {
+            $sel.html('<option value="0">-- Tất cả đơn vị --</option>');
+            return;
+        }
+
         $sel.html('<option value="0">Đang tải...</option>');
         try {
             const data = await apiGet(`/api/dodac/dropdown/donvi-by-tinh/${idTinh}`);
+
+            // DEBUG: Mở F12 -> Console để xem tên chính xác của thuộc tính
+            console.log("Dữ liệu đơn vị nhận được:", data);
+
             let opts = '<option value="0">-- Tất cả đơn vị --</option>';
-            (data || []).forEach(d => { opts += `<option value="${d.id}">${d.ten}</option>`; });
+            (data || []).forEach(d => {
+                // [ĐÃ SỬA]: Kiểm tra các tên thuộc tính khả thi
+                // Thường trong DTO backend, tên sẽ là 'ten' hoặc 'tenDonVi'
+                const tenHienThi = d.tenDonVi || d.ten || d.TenDonVi || 'Không rõ tên';
+                const idValue = d.id || d.Id;
+
+                opts += `<option value="${idValue}">${tenHienThi}</option>`;
+            });
+
             $sel.html(opts);
         } catch (e) {
             $sel.html('<option value="0">-- Lỗi tải --</option>');
+            console.error('Lỗi load đơn vị:', e);
         }
     }
 
     async function thucHienXuatExcelDSBanVe() {
+        const idTinh = $('#xuat_IDTinh').val();
+        const idDonVi = $('#xuat_IDDonVi').val();
+
+        if (!idTinh || idTinh === "") {
+            alert('Vui lòng chọn Tỉnh/Thành phố trước khi xuất file!');
+            $('#xuat_IDTinh').focus(); // Focus con trỏ chuột vào ô Tỉnh
+            return;
+        }
+
+        if (!idDonVi || idDonVi === "0") { // Kiểm tra giá trị "0" vì thẻ option mặc định của bạn là 0
+            alert('Vui lòng chọn Đơn vị công tác xử lý hồ sơ!');
+            $('#xuat_IDDonVi').focus(); // Focus con trỏ chuột vào ô Đơn vị
+            return;
+        }
+
         const tuNgayStr  = $('#xuat_TuNgay').val();
         const denNgayStr = $('#xuat_DenNgay').val();
         if (!tuNgayStr || !denNgayStr) { alert('Vui lòng nhập khoảng thời gian!'); return; }
@@ -1627,4 +1809,107 @@
             $('#loader-overlay').hide();
         }
     }
+    //---------------------------------------------------------------------------------------------------
+    //Khay lưu xuất bản vẽ
+    function themVaoKhay(type, id, label) {
+        let storageKey = (type === 'hoso') ? 'khay_hoso_ids' : 'khay_banve_ids';
+        let list = JSON.parse(localStorage.getItem(storageKey)) || [];
+        if (list.some(item => item.id == id)) {
+            alert('Đã có trong khay!');
+            return;
+        }
+        list.push({ id: id, label: label });
+        localStorage.setItem(storageKey, JSON.stringify(list));
+        capNhatGiaoDienKhayNho();
+    }
+    function capNhatGiaoDienKhayNho() {
+        let hsList = JSON.parse(localStorage.getItem('khay_hoso_ids')) || [];
+        let bvList = JSON.parse(localStorage.getItem('khay_banve_ids')) || [];
+
+        if (hsList.length === 0 && bvList.length === 0) {
+            $('#khayNhoTamWrapper').hide();
+            return;
+        }
+        $('#khayNhoTamWrapper').show();
+
+        // Tab Hồ Sơ
+        $('#khay_UlHoSo').html(hsList.map(item => `
+            <li class="d-flex justify-content-between p-1 border-bottom">
+                <span class="text-truncate" style="max-width:400px;" title="${item.label}">
+                    <small class="text-muted">HS ${item.id}:</small> <b>${item.label}</b>
+                </span>
+                <a href="javascript:void(0)" class="text-danger fw-bold ms-2" onclick="xoaKhoiKhay('hoso', ${item.id})">×</a>
+            </li>`).join(''));
+
+        // Tab Bản Vẽ
+        $('#khay_UlBanVe').html(bvList.map(item => `
+            <li class="d-flex justify-content-between p-1 border-bottom">
+                <span class="text-truncate" style="max-width:400px;" title="${item.label}">
+                    <small class="text-muted">BV ${item.id}:</small> <b>${item.label}</b>
+                </span>
+                <a href="javascript:void(0)" class="text-danger fw-bold ms-2" onclick="xoaKhoiKhay('banve', ${item.id})">×</a>
+            </li>`).join(''));
+    }
+
+    function xoaKhoiKhay(type, id) {
+        let key = (type === 'hoso') ? 'khay_hoso_ids' : 'khay_banve_ids';
+        let list = JSON.parse(localStorage.getItem(key)) || [];
+        // Lọc theo thuộc tính .id của object
+        list = list.filter(x => x.id != id);
+        localStorage.setItem(key, JSON.stringify(list));
+        capNhatGiaoDienKhayNho();
+    }
+
+    function xoaSachKhayNho() {
+        if (!confirm('Xóa hết cả hai danh sách?')) return;
+        localStorage.removeItem('khay_hoso_ids');
+        localStorage.removeItem('khay_banve_ids');
+        capNhatGiaoDienKhayNho();
+    }
+
+    function dongKhayNho() {
+        $('#khayNhoTamWrapper').fadeOut(200);
+    }
+
+    function toggleKhayNho() {
+        $('#khay_ContentBody, .card-footer').slideToggle(200);
+    }
+
+    async function xuatKhayNhoTam() {
+        let isHoSoActive = $('#tabKhayHoSo').hasClass('active');
+        let type = isHoSoActive ? 'hoso' : 'banve';
+        let key = (type === 'hoso') ? 'khay_hoso_ids' : 'khay_banve_ids';
+        let listData = JSON.parse(localStorage.getItem(key)) || [];
+        if (listData.length === 0) {
+            alert('Khay ' + (type === 'hoso' ? 'Hồ sơ' : 'Bản vẽ') + ' đang trống!');
+            return;
+        }
+        let listId = listData.map(item => item.id);
+        let url = (type === 'hoso') ? '/api/dodac/xuatfile/excel-hoso-ids' : '/api/dodac/xuatfile/excel-chitiet-ids';
+
+        $('#loader-overlay').css('display', 'flex');
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: listId })
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+            const blob = await res.blob();
+            const urlFile = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = urlFile;
+            a.download = `DanhSach_${type === 'hoso' ? 'HoSo' : 'BanVe'}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            URL.revokeObjectURL(urlFile);
+            a.remove();
+        } catch (e) {
+            alert('Lỗi xuất Excel: ' + e.message);
+        } finally {
+            $('#loader-overlay').hide();
+        }
+    }
 </script>
+

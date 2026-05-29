@@ -8,12 +8,13 @@
         <div class="row g-3">
 
             <div class="col-md-6">
-                <label class="small fw-bold">Đăng ký tại đơn vị</label>
+                <label class="small fw-bold">Đăng ký tại đơn vị <span class="text-danger">*</span></label>
                 <div class="input-group input-group-sm">
-                    <select id="tn_selectDonVi" class="form-select" disabled>
-                        <option value="">Đang tải đơn vị...</option>
+                    <select id="tn_selectDonVi" class="form-select">
+                        <option value="">-- Vui lòng chọn đúng đơn vị xử lý --</option>
                     </select>
-                    <div class="input-group-text">
+                    <div class="input-group-text d-none">
+                        @* Ẩn luôn checkbox Đơn vị khác vì giờ select đã mở cho tất cả *@
                         <input type="checkbox" id="tn_chkOtherUnit" class="form-check-input mt-0 me-1">
                         <span class="small">Đơn vị khác</span>
                     </div>
@@ -29,7 +30,7 @@
             <div class="col-md-3">
                 <label class="small fw-bold">Số hợp đồng</label>
                 <div class="input-group input-group-sm">
-                    <input type="text" id="tn_SoHopDong" class="form-control" readonly
+                    <input type="text" id="tn_SoHopDong" class="form-control"
                            placeholder="Nhấp nút lấy số..." />
                     <button class="btn btn-outline-primary" type="button" onclick="tn_LaySoHopDong()">
                         <i class="bi bi-arrow-repeat"></i> Lấy số
@@ -38,7 +39,7 @@
             </div>
 
             <div class="col-md-3">
-                <label class="small fw-bold">Ngày hợp đồng</label>
+                <label class="small fw-bold">Ngày đăng ký</label>
                 <input type="text" id="tn_NgayHopDong" class="form-control form-control-sm"
                        placeholder="dd/MM/yyyy" />
             </div>
@@ -102,17 +103,27 @@
 </div>
 
 <script>
+    const sessionDonViId = '@Context.Session.GetInt32("IdDonViCongTac")';
+    const sessionDonViName = '@Html.Raw(Context.Session.GetString("DonViCongTac")?.Trim() ?? "")';
+
     // ============================================================
     // KHỞI TẠO PARTIAL TIẾP NHẬN
-    // Gọi sau khi HTML đã render xong: await tn_Init()
     // ============================================================
     async function tn_Init() {
         // Set ngày hôm nay
+        $('#tn_SoHopDong').on('input', function () {
+            if ($(this).val().trim() !== "") {
+                $(this).removeClass('is-invalid').addClass('is-valid');
+            } else {
+                $(this).removeClass('is-valid is-invalid');
+            }
+        });
+
         const now = new Date();
-        const today = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+        const today = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
         $('#tn_NgayHopDong').val(today);
 
-        // Load dropdown song song
+        // Load dropdown dữ liệu song song (Đã đồng bộ hóa an toàn)
         await Promise.all([
             tn_LoadDonVi(),
             tn_LoadQuyTrinh(),
@@ -130,29 +141,36 @@
         });
     }
 
-        async function tn_LoadQuyTrinh() {
+    async function tn_LoadQuyTrinh() {
         try {
-            // { id, tenQuyTrinh, loaiQuyTrinh }
             const data = await apiGet('/api/admin/QuyTrinh');
             let opts = '<option value="">-- Chọn quy trình --</option>';
             (data || []).forEach(q => {
                 opts += `<option value="${q.id}">${q.tenQuyTrinh}</option>`;
             });
             $('#tn_IDQuyTrinh').html(opts);
-        } catch(e) {
+        } catch (e) {
             $('#tn_IDQuyTrinh').html('<option value="">-- Lỗi tải --</option>');
         }
     }
 
+    // ============================================================
+    // [CẢI TIẾN CỐT LÕI]: Load và tự động đồng bộ ID theo Session
+    // ============================================================
     async function tn_LoadDonVi() {
         try {
-            // GET /api/dodac/dropdown/all-donvi → DonViByTinhDto[]
             const data = await apiGet('/api/dodac/dropdown/all-donvi');
-            let opts = '<option value="">-- Chọn đơn vị --</option>';
+            // Đặt option đầu tiên là trống và có thuộc tính bắt buộc chọn
+            let opts = '<option value="">-- Vui lòng chọn đúng đơn vị xử lý --</option>';
+
             (data || []).forEach(d => {
                 opts += `<option value="${d.id}">${d.ten}</option>`;
             });
+
             $('#tn_selectDonVi').html(opts);
+
+            // Bỏ toàn bộ đoạn code tự động gán targetId hay trigger('change') ở đây
+            console.log("Đã tải danh sách đơn vị. Chờ người dùng tự lựa chọn.");
         } catch (e) {
             $('#tn_selectDonVi').html('<option value="">-- Lỗi tải đơn vị --</option>');
             console.error('Lỗi tải đơn vị:', e);
@@ -161,7 +179,6 @@
 
     async function tn_LoadTinh() {
         try {
-            // GET /api/dodac/dropdown/all-tinh
             const data = await apiGet('/api/dodac/dropdown/all-tinh');
             let opts = '<option value="">-- Chọn Tỉnh --</option>';
             (data || []).forEach(t => {
@@ -181,7 +198,6 @@
             return;
         }
         try {
-            // GET /api/dodac/dropdown/xa-by-tinh/{tinhId} → XaByTinhDto[]
             const data = await apiGet(`/api/dodac/dropdown/xa-by-tinh/${idTinh}`);
             let opts = '<option value="">-- Chọn Xã --</option>';
             (data || []).forEach(x => {
@@ -202,12 +218,11 @@
         if (!confirm('Hệ thống sẽ cấp số hợp đồng mới. Số sau khi lấy sẽ lưu vào CSDL, không hủy được. Tiếp tục?')) return;
 
         try {
-            // GET /api/dodac/hosododac/next-sohopdong/{idDonVi}
             const res = await apiGet(`/api/dodac/hosododac/next-sohopdong/${idDonVi}`);
             if (res && res.soHopDong) {
                 $('#tn_SoHopDong').val(res.soHopDong)
-                                  .removeClass('is-invalid')
-                                  .addClass('is-valid');
+                    .removeClass('is-invalid')
+                    .addClass('is-valid');
             } else {
                 alert('Không lấy được số hợp đồng. Vui lòng thử lại!');
             }
@@ -217,39 +232,47 @@
     }
 
     async function tn_Submit() {
-        // Validate tối thiểu
-        const nguoiDangKy = $('#tn_NguoiDangKy').val().trim();
-        const soHopDong   = $('#tn_SoHopDong').val().trim();
-        const idDonVi     = $('#tn_selectDonVi').val();
+        // 1. Đọc dữ liệu từ các ô nhập liệu
+        const idDonVi = $('#tn_selectDonVi').val(); // Trích xuất ID trực tiếp từ ô người dùng chọn
         const idQuyTrinh = parseInt($('#tn_IDQuyTrinh').val()) || 0;
-    if (!idQuyTrinh) { alert('Vui lòng chọn quy trình xử lý!'); return; }
+        const nguoiDangKy = $('#tn_NguoiDangKy').val().trim();
+        const soHopDong = $('#tn_SoHopDong').val().trim();
 
+        // 2. CHẶN BẮT BUỘC: Nếu chưa chọn đơn vị (giá trị bằng rỗng "") thì báo lỗi ngay
+        if (!idDonVi || idDonVi === "") {
+            alert('Vui lòng chọn Đơn vị công tác xử lý hồ sơ này!');
+            $('#tn_selectDonVi').addClass('is-invalid').focus();
+            return;
+        }
+
+        if (!idQuyTrinh) { alert('Vui lòng chọn quy trình xử lý!'); return; }
         if (!nguoiDangKy) { alert('Vui lòng nhập tên tổ chức/cá nhân đăng ký!'); return; }
-        if (!soHopDong)   { alert('Vui lòng lấy số hợp đồng trước!'); return; }
+        //if (!soHopDong) { alert('Vui lòng lấy số hợp đồng trước!'); return; }
 
-        // Map đúng CreateHoSoDoDacDto
+        // 3. Đóng gói DTO (Đảm bảo cấu trúc sạch sẽ)
         const dto = {
-            idDonViCongTac: parseInt(idDonVi) || null,
-            soHopDong:      soHopDong,
+            idDonViCongTac: parseInt(idDonVi), 
+            soHopDong: soHopDong,
             idQuyTrinh: idQuyTrinh,
-            ngayHopDong:    $('#tn_NgayHopDong').val(),
-            nguoiDangKy:    nguoiDangKy,
-            cccd:           $('#tn_CCCD').val(),
-            soDienThoai:    $('#tn_SoDienThoai').val(),
-            mucDichDangKy:  $('#tn_MucDich').val(),
-            diaChiThuaDat:  $('#tn_DiaChiThuaDat').val(),
-            idXa:           parseInt($('#tn_IDXa').val())   || null,
-            idTinh:         parseInt($('#tn_IDTinh').val()) || null,
-            ghiChu:         $('#tn_GhiChu').val(),
-            chkOtherUnit:   $('#tn_chkOtherUnit').is(':checked')
+            ngayHopDong: $('#tn_NgayHopDong').val(),
+            nguoiDangKy: nguoiDangKy,
+            cccd: $('#tn_CCCD').val(),
+            soDienThoai: $('#tn_SoDienThoai').val(),
+            mucDichDangKy: $('#tn_MucDich').val(),
+            diaChiThuaDat: $('#tn_DiaChiThuaDat').val(),
+            seriGcn: $('#tn_SeriGCN').val(),
+            idXa: parseInt($('#tn_IDXa').val()) || null,
+            idTinh: parseInt($('#tn_IDTinh').val()) || null,
+            ghiChu: $('#tn_GhiChu').val(),
+            chkOtherUnit: true 
         };
 
+        console.log("Dữ liệu DTO gửi đi sau khi người dùng tự tay chọn đơn vị:", dto);
+
         try {
-            // POST /api/dodac/hosododac
             const res = await apiPost('/api/dodac/hosododac', dto);
             if (res && res.success) {
                 alert('Tiếp nhận hồ sơ thành công! Mã hồ sơ: ' + res.id);
-                // Quay về tab Xử lý và reload danh sách
                 loadTask('XuLy', null);
                 await renderDanhSachHoSo(true);
             } else {
@@ -259,4 +282,6 @@
             alert('Lỗi kết nối: ' + e.message);
         }
     }
+
+
 </script>
