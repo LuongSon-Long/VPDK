@@ -1,7 +1,9 @@
-﻿using HeThongQuanLyVanPhong.Models;
-using HeThongQuanLyVanPhong.Repositories;
+﻿using DocumentFormat.OpenXml.Vml.Office;
 using HeThongQuanLyVanPhong.DTOs.DoDac;
+using HeThongQuanLyVanPhong.Models;
+using HeThongQuanLyVanPhong.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace HeThongQuanLyVanPhong.Services
 {
@@ -70,6 +72,11 @@ namespace HeThongQuanLyVanPhong.Services
 
             var tt = await _thanhToanRepo.GetThanhToanByBanVeIdAsync(request.IdBanVe);
 
+            DateOnly? ngayHoaDonDate = null;
+            if (DateOnly.TryParseExact(request.NgayHoaDon, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+            {
+                ngayHoaDonDate = parsedDate;
+            }
             if (tt == null)
             {
                 tt = new DangKyDoDacBanVeThanhToan
@@ -81,12 +88,9 @@ namespace HeThongQuanLyVanPhong.Services
                     SoHoaDon = request.SoHoaDon,
                     DaThanhToan = request.DaThanhToan,
                     IdtaiKhoan = currentUserId,
-                    IddonViCongTac = donViId
+                    IddonViCongTac = donViId,
+                    NgayHoaDon = ngayHoaDonDate
                 };
-
-                if (DateTime.TryParse(request.NgayHoaDon, out DateTime parsedDate))
-                    tt.NgayHoaDon = DateOnly.FromDateTime(parsedDate);
-
                 await _thanhToanRepo.AddThanhToanAsync(tt);
             }
             else
@@ -97,9 +101,7 @@ namespace HeThongQuanLyVanPhong.Services
                 tt.DaThanhToan = request.DaThanhToan;
                 tt.IdtaiKhoan = currentUserId;
                 tt.IddonViCongTac = donViId;
-
-                if (DateTime.TryParse(request.NgayHoaDon, out DateTime parsedDate))
-                    tt.NgayHoaDon = DateOnly.FromDateTime(parsedDate);
+                tt.NgayHoaDon = ngayHoaDonDate;
 
                 _thanhToanRepo.UpdateThanhToan(tt);
             }
@@ -121,7 +123,7 @@ namespace HeThongQuanLyVanPhong.Services
                 IdDonGia = tt.IddonGia ?? 0,
                 KyHieu = tt.KyHieuHoaDon,
                 SoHD = tt.SoHoaDon,
-                NgayHD = tt.NgayHoaDon.HasValue ? tt.NgayHoaDon.Value.ToString("yyyy-MM-dd") : "",
+                NgayHD = tt.NgayHoaDon.HasValue ? tt.NgayHoaDon.Value.ToString("dd/MM/yyyy") : "",
                 DaThanhToan = tt.DaThanhToan,
                 VanBan = dg?.VanBanQuyDinhGia,
                 LoaiBanVe = dg?.LoaiBanVe,

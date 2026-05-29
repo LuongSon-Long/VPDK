@@ -48,7 +48,7 @@ namespace HeThongQuanLyVanPhong.Services
                 NguoiDangKy = x.NguoiDangKy,
                 CCCD = x.Cccd,
                 SoDienThoai = x.SoDienThoai,
-                SeriGCN = x.SeriGcn,
+                SeriGCN = x.SeriGCN,
                 MucDichDangKy = x.MucDichDangKy,
                 DiaChiThuaDat = x.DiaChiThuaDat,
                 IDXa = x.Idxa,
@@ -84,7 +84,7 @@ namespace HeThongQuanLyVanPhong.Services
                 NguoiDangKy = x.NguoiDangKy,
                 CCCD = x.Cccd,
                 SoDienThoai = x.SoDienThoai,
-                SeriGCN = x.SeriGcn,
+                SeriGCN = x.SeriGCN,
                 MucDichDangKy = x.MucDichDangKy,
                 DiaChiThuaDat = x.DiaChiThuaDat,
                 IDXa = x.Idxa,
@@ -162,6 +162,7 @@ namespace HeThongQuanLyVanPhong.Services
                 SoDienThoai = dto.SoDienThoai,
                 MucDichDangKy = dto.MucDichDangKy,
                 DiaChiThuaDat = dto.DiaChiThuaDat,
+                SeriGCN = dto.SeriGCN,
                 Idxa = dto.IDXa,
                 Idtinh = dto.IDTinh,
                 IdtaiKhoanDo = currentUserId,
@@ -195,7 +196,7 @@ namespace HeThongQuanLyVanPhong.Services
             if (hoSo.Cccd != dto.CCCD) { hoSo.Cccd = dto.CCCD; hasChange = true; }
             if (hoSo.SoDienThoai != dto.SoDienThoai) { hoSo.SoDienThoai = dto.SoDienThoai; hasChange = true; }
             if (hoSo.DiaChiThuaDat != dto.DiaChiThuaDat) { hoSo.DiaChiThuaDat = dto.DiaChiThuaDat; hasChange = true; }
-            if (hoSo.SeriGcn != dto.SeriGCN) { hoSo.SeriGcn = dto.SeriGCN; hasChange = true; }
+            if (hoSo.SeriGCN != dto.SeriGCN) { hoSo.SeriGCN = dto.SeriGCN; hasChange = true; }
             if (hoSo.MucDichDangKy != dto.MucDichDangKy) { hoSo.MucDichDangKy = dto.MucDichDangKy; hasChange = true; }
             if (hoSo.GhiChu != dto.GhiChu) { hoSo.GhiChu = dto.GhiChu; hasChange = true; }
             if (hoSo.IdtaiKhoanDo != dto.IDTaiKhoanDo) { hoSo.IdtaiKhoanDo = dto.IDTaiKhoanDo; hasChange = true; }

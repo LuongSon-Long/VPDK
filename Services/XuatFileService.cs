@@ -5,6 +5,7 @@ using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
+using System.Globalization;
 
 namespace HeThongQuanLyVanPhong.Services
 {
@@ -18,6 +19,141 @@ namespace HeThongQuanLyVanPhong.Services
         }
 
         // ==================== XUẤT EXCEL CHI TIẾT HỒ SƠ ====================
+        public async Task<byte[]> XuatExcelTheoListIdsAsync(List<int> ids)
+        {
+            // 1. Query lấy dữ liệu bản vẽ dựa trên list ID truyền vào
+            // Sử dụng join giống hệt hàm XuatExcelThanhToanAsync để có đầy đủ thông tin
+            var query = from bv in _context.DangKyDoDacBanVes
+                        join dk in _context.DangKyDoDacs on bv.IddangKyDoDac equals dk.Id
+                        join tt in _context.DangKyDoDacBanVeThanhToans on bv.Id equals tt.IdbanVe into ttGroup
+                        from tt in ttGroup.DefaultIfEmpty()
+                        join dg in _context.DangKyDoDacDonGia on tt.IddonGia equals dg.Id into dgGroup
+                        from dg in dgGroup.DefaultIfEmpty()
+                        join xa in _context.Dvhcxas on bv.Idxa equals xa.Id into xaGroup
+                        from xa in xaGroup.DefaultIfEmpty()
+                        join tk in _context.TaiKhoans on bv.IdnguoiDo equals tk.Id into tkGroup
+                        from tk in tkGroup.DefaultIfEmpty()
+                        join tkKy in _context.TaiKhoans on bv.IdnguoiKy equals tkKy.Id into kyGroup
+                        from tkKy in kyGroup.DefaultIfEmpty()
+                        join tkDo in _context.TaiKhoans on dk.IdtaiKhoanDo equals tkDo.Id into tkDoGroup
+                        from tkDo in tkDoGroup.DefaultIfEmpty()
+                        where ids.Contains(bv.Id)
+                        select new { bv, tt, dg, xa, tk, tkKy, dk, tkDo };
+
+            var data = await query.ToListAsync();
+
+            // 2. Vẽ file Excel (Giữ nguyên cấu trúc định dạng của bạn)
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("DanhSachBanVe");
+                string[] headers = {
+            "Tên chủ sử dụng", "Địa chỉ thửa đất", "Xã/Phường","Đơn vị đo đạc", "Năm đo", "Số hiệu BV",
+            "Loại bản vẽ", "Số tờ", "Số thửa", "Diện tích", "Ngày lập", "Người đo, kiểm tra","Người duyệt",
+            "Ký hiệu HĐ", "Số hóa đơn", "Ngày hóa đơn", "Số tiền", "Chi phí lao động", "Tiền làm tròn", "Văn bản quy định giá",
+            "Người, đơn vị đăng ký", "Số hợp đồng", "Ngày hợp đồng", "Số điện thoại", "Số Phiếu Giao", "Ngày Giao", "Ngày Yêu Cầu", "Ngày Đo", "Người được giao xử lý"
+        };
+
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    var cell = worksheet.Cell(1, i + 1);
+                    cell.Value = headers[i];
+                    cell.Style.Font.Bold = true;
+                    cell.Style.Fill.BackgroundColor = XLColor.LightGray;
+                }
+
+                // Highlight cột thông tin đăng ký (giống bản cũ)
+                worksheet.Range(1, 21, 1, 29).Style.Fill.BackgroundColor = XLColor.Yellow;
+                worksheet.Range(1, 21, 1, 29).Style.Font.Bold = true;
+
+                int row = 2;
+                foreach (var item in data)
+                {
+                    worksheet.Cell(row, 1).Value = item.bv.TenCsd;
+                    worksheet.Cell(row, 2).Value = item.bv.DiaChiThuaDat;
+                    worksheet.Cell(row, 3).Value = item.xa?.TenXa;
+                    worksheet.Cell(row, 4).Value = item.bv.DonViDoDac;
+                    worksheet.Cell(row, 5).Value = item.bv.NamDoDac;
+                    worksheet.Cell(row, 6).Value = item.bv.SoHieuBanVe;
+                    worksheet.Cell(row, 7).Value = item.bv.LoaiBanVe;
+                    worksheet.Cell(row, 8).Value = item.bv.ToBd;
+                    worksheet.Cell(row, 9).Value = item.bv.SoHieuThua;
+                    worksheet.Cell(row, 10).Value = item.bv.DienTich;
+                    worksheet.Cell(row, 11).Value = item.bv.NgayLap?.ToString("dd/MM/yyyy");
+                    worksheet.Cell(row, 12).Value = item.tk?.HoVaTen;
+                    worksheet.Cell(row, 13).Value = item.tkKy?.HoVaTen;
+                    worksheet.Cell(row, 14).Value = item.tt?.KyHieuHoaDon;
+                    worksheet.Cell(row, 15).Value = item.tt?.SoHoaDon;
+                    worksheet.Cell(row, 16).Value = item.tt?.NgayHoaDon?.ToString("dd/MM/yyyy");
+                    worksheet.Cell(row, 17).Value = item.dg?.SoTien ?? 0;
+                    worksheet.Cell(row, 18).Value = item.dg?.ChiPhiLaoDong ?? 0;
+                    worksheet.Cell(row, 19).Value = item.dg?.TienLamTron ?? 0;
+                    worksheet.Cell(row, 20).Value = item.dg?.VanBanQuyDinhGia;
+                    worksheet.Cell(row, 21).Value = item.dk.NguoiDangKy;
+                    worksheet.Cell(row, 22).Value = item.dk.SoHopDong;
+                    worksheet.Cell(row, 23).Value = item.dk.NgayHopDong;
+                    worksheet.Cell(row, 24).Value = item.dk.SoDienThoai;
+                    worksheet.Cell(row, 25).Value = item.dk.SoPhieuGiao;
+                    worksheet.Cell(row, 26).Value = item.dk.NgayGiao?.ToString("dd/MM/yyyy");
+                    worksheet.Cell(row, 27).Value = item.dk.NgayYeuCau?.ToString("dd/MM/yyyy");
+                    worksheet.Cell(row, 28).Value = item.dk.NgayDo?.ToString("dd/MM/yyyy");
+                    worksheet.Cell(row, 29).Value = item.tkDo?.HoVaTen;
+
+                    worksheet.Range(row, 17, row, 19).Style.NumberFormat.Format = "#,##0";
+                    row++;
+                }
+
+                worksheet.Columns().AdjustToContents();
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return stream.ToArray();
+                }
+            }
+        }
+
+        public async Task<byte[]> XuatExcelHoSoTheoIdsAsync(List<int> ids)
+        {
+            var query = from dk in _context.DangKyDoDacs
+                        join xa in _context.Dvhcxas on dk.Idxa equals xa.Id into xaGroup
+                        from xa in xaGroup.DefaultIfEmpty()
+                        where ids.Contains(dk.Id)
+                        select new { dk, TenXa = xa.TenXa }; // Chọn cả hồ sơ và tên xã
+
+            var data = await query.ToListAsync();
+
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("DanhSachHoSo");
+                // Thêm cột "Xã/Phường" vào header
+                string[] headers = { "STT", "Số hợp đồng", "Ngày hợp đồng", "Người đăng ký", "Địa chỉ", "Xã/Phường", "Số điện thoại" };
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    worksheet.Cell(1, i + 1).Value = headers[i];
+                    worksheet.Cell(1, i + 1).Style.Font.Bold = true;
+                }
+
+                int row = 2;
+                foreach (var item in data)
+                {
+                    worksheet.Cell(row, 1).Value = row - 1;
+                    worksheet.Cell(row, 2).Value = item.dk.SoHopDong;
+                    worksheet.Cell(row, 3).Value = item.dk.NgayHopDong;
+                    worksheet.Cell(row, 4).Value = item.dk.NguoiDangKy;                    
+                    worksheet.Cell(row, 6).Value = item.dk.DiaChiThuaDat;
+                    worksheet.Cell(row, 5).Value = item.TenXa ?? ""; // Tên xã lấy từ kết quả join
+                    worksheet.Cell(row, 7).Value = item.dk.SoDienThoai;
+                    row++;
+                }
+
+                worksheet.Columns().AdjustToContents();
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return stream.ToArray();
+                }
+            }
+        }
+
         public async Task<byte[]> XuatExcelChiTietAsync(XuatExcelRequestDto request)
         {
             var query = _context.DangKyDoDacs
@@ -36,8 +172,17 @@ namespace HeThongQuanLyVanPhong.Services
             }
 
             var dataRaw = await query.ToListAsync();
-            DateTime dTu = DateTime.Parse(request.TuNgay!).Date;
-            DateTime dDen = DateTime.Parse(request.DenNgay!).Date;
+            DateTime dTu = DateTime.MinValue;
+            if (!string.IsNullOrEmpty(request.TuNgay))
+            {
+                dTu = DateTime.ParseExact(request.TuNgay, "dd/MM/yyyy", CultureInfo.InvariantCulture).Date;
+            }
+
+            DateTime dDen = DateTime.MaxValue;
+            if (!string.IsNullOrEmpty(request.DenNgay))
+            {
+                dDen = DateTime.ParseExact(request.DenNgay, "dd/MM/yyyy", CultureInfo.InvariantCulture).Date;
+            }
             DateTime ngayHienTai = DateTime.Now.Date;
 
             var list = dataRaw.Where(x =>
@@ -104,14 +249,19 @@ namespace HeThongQuanLyVanPhong.Services
         {
             var query = from tt in _context.DangKyDoDacBanVeThanhToans
                         join bv in _context.DangKyDoDacBanVes on tt.IdbanVe equals bv.Id
+                        join dk in _context.DangKyDoDacs on bv.IddangKyDoDac equals dk.Id
                         join dg in _context.DangKyDoDacDonGia on tt.IddonGia equals dg.Id into dgGroup
                         from dg in dgGroup.DefaultIfEmpty()
                         join xa in _context.Dvhcxas on bv.Idxa equals xa.Id into xaGroup
                         from xa in xaGroup.DefaultIfEmpty()
                         join tk in _context.TaiKhoans on bv.IdnguoiDo equals tk.Id into tkGroup
                         from tk in tkGroup.DefaultIfEmpty()
+                        join tkKy in _context.TaiKhoans on bv.IdnguoiKy equals tkKy.Id into kyGroup
+                        from tkKy in kyGroup.DefaultIfEmpty()
+                        join tkDo in _context.TaiKhoans on dk.IdtaiKhoanDo equals tkDo.Id into tkDoGroup
+                        from tkDo in tkDoGroup.DefaultIfEmpty()
                         where tt.NgayHoaDon >= DateOnly.FromDateTime(request.TuNgay) && tt.NgayHoaDon <= DateOnly.FromDateTime(request.DenNgay)
-                        select new { bv, tt, dg, xa, tk };
+                        select new { bv, tt, dg, xa, tk, tkKy, dk, tkDo };
 
             if (request.DaThanhToan == "true") query = query.Where(x => x.tt.DaThanhToan == true);
             else if (request.DaThanhToan == "false") query = query.Where(x => x.tt.DaThanhToan == false);
@@ -124,9 +274,10 @@ namespace HeThongQuanLyVanPhong.Services
             {
                 var worksheet = workbook.Worksheets.Add("BaoCaoChiTiet");
                 string[] headers = {
-                    "Tên chủ sử dụng", "Địa chỉ thửa đất", "Xã/Phường", "Năm đo", "Số hiệu BV",
-                    "Loại bản vẽ", "Số tờ", "Số thửa", "Diện tích", "Ngày lập", "Người thực hiện",
-                    "Ký hiệu HĐ", "Số hóa đơn", "Ngày hóa đơn", "Số tiền", "Chi phí lao động", "Tiền làm tròn", "Văn bản quy định giá"
+                    "Tên chủ sử dụng", "Địa chỉ thửa đất", "Xã/Phường","Đơn vị đo đạc", "Năm đo", "Số hiệu BV",
+                    "Loại bản vẽ", "Số tờ", "Số thửa", "Diện tích", "Ngày lập", "Người đo, kiểm tra","Người duyệt",
+                    "Ký hiệu HĐ", "Số hóa đơn", "Ngày hóa đơn", "Số tiền", "Chi phí lao động", "Tiền làm tròn", "Văn bản quy định giá",
+                    "Người, đơn vị đăng ký", "Số hợp đồng", "Ngày hợp đồng", "Số điện thoại", "Số Phiếu Giao", "Ngày Giao", "Ngày Yêu Cầu", "Ngày Đo", "Người được giao xử lý"
                 };
 
                 for (int i = 0; i < headers.Length; i++)
@@ -136,29 +287,41 @@ namespace HeThongQuanLyVanPhong.Services
                     cell.Style.Font.Bold = true;
                     cell.Style.Fill.BackgroundColor = XLColor.LightGray;
                 }
-
+                worksheet.Range(1, 21, 1, 29).Style.Fill.BackgroundColor = XLColor.Yellow;
+                worksheet.Range(1, 21, 1, 29).Style.Font.Bold = true;
                 int row = 2;
                 foreach (var item in data)
                 {
                     worksheet.Cell(row, 1).Value = item.bv.TenCsd;
                     worksheet.Cell(row, 2).Value = item.bv.DiaChiThuaDat;
                     worksheet.Cell(row, 3).Value = item.xa?.TenXa;
-                    worksheet.Cell(row, 4).Value = item.bv.NamDoDac;
-                    worksheet.Cell(row, 5).Value = item.bv.SoHieuBanVe;
-                    worksheet.Cell(row, 6).Value = item.bv.LoaiBanVe;
-                    worksheet.Cell(row, 7).Value = item.bv.ToBd;
-                    worksheet.Cell(row, 8).Value = item.bv.SoHieuThua;
-                    worksheet.Cell(row, 9).Value = item.bv.DienTich;
-                    worksheet.Cell(row, 10).Value = item.bv.NgayLap?.ToString("dd/MM/yyyy");
-                    worksheet.Cell(row, 11).Value = item.tk?.HoVaTen;
-                    worksheet.Cell(row, 12).Value = item.tt.KyHieuHoaDon;
-                    worksheet.Cell(row, 13).Value = item.tt.SoHoaDon;
-                    worksheet.Cell(row, 14).Value = item.tt.NgayHoaDon?.ToString("dd/MM/yyyy");
-                    worksheet.Cell(row, 15).Value = item.dg?.SoTien ?? 0;
-                    worksheet.Cell(row, 16).Value = item.dg?.ChiPhiLaoDong ?? 0;
-                    worksheet.Cell(row, 17).Value = item.dg?.TienLamTron ?? 0;
-                    worksheet.Cell(row, 18).Value = item.dg?.VanBanQuyDinhGia;
-                    worksheet.Range(row, 15, row, 17).Style.NumberFormat.Format = "#,##0";
+                    worksheet.Cell(row, 4).Value = item.bv.DonViDoDac;
+                    worksheet.Cell(row, 5).Value = item.bv.NamDoDac;
+                    worksheet.Cell(row, 6).Value = item.bv.SoHieuBanVe;
+                    worksheet.Cell(row, 7).Value = item.bv.LoaiBanVe;
+                    worksheet.Cell(row, 8).Value = item.bv.ToBd;
+                    worksheet.Cell(row, 9).Value = item.bv.SoHieuThua;
+                    worksheet.Cell(row, 10).Value = item.bv.DienTich;
+                    worksheet.Cell(row, 11).Value = item.bv.NgayLap?.ToString("dd/MM/yyyy");
+                    worksheet.Cell(row, 12).Value = item.tk?.HoVaTen;
+                    worksheet.Cell(row, 13).Value = item.tkKy?.HoVaTen;
+                    worksheet.Cell(row, 14).Value = item.tt.KyHieuHoaDon;
+                    worksheet.Cell(row, 15).Value = item.tt.SoHoaDon;
+                    worksheet.Cell(row, 16).Value = item.tt.NgayHoaDon?.ToString("dd/MM/yyyy");
+                    worksheet.Cell(row, 17).Value = item.dg?.SoTien ?? 0;
+                    worksheet.Cell(row, 18).Value = item.dg?.ChiPhiLaoDong ?? 0;
+                    worksheet.Cell(row, 19).Value = item.dg?.TienLamTron ?? 0;
+                    worksheet.Cell(row, 20).Value = item.dg?.VanBanQuyDinhGia;
+                    worksheet.Cell(row, 21).Value = item.dk.NguoiDangKy;
+                    worksheet.Cell(row, 22).Value = item.dk.SoHopDong;
+                    worksheet.Cell(row, 23).Value = item.dk.NgayHopDong;
+                    worksheet.Cell(row, 24).Value = item.dk.SoDienThoai;
+                    worksheet.Cell(row, 25).Value = item.dk.SoPhieuGiao;
+                    worksheet.Cell(row, 26).Value = item.dk.NgayGiao?.ToString("dd/MM/yyyy");
+                    worksheet.Cell(row, 27).Value = item.dk.NgayYeuCau?.ToString("dd/MM/yyyy");
+                    worksheet.Cell(row, 28).Value = item.dk.NgayDo?.ToString("dd/MM/yyyy");
+                    worksheet.Cell(row, 29).Value = item.tkDo?.HoVaTen;
+                    worksheet.Range(row, 17, row, 19).Style.NumberFormat.Format = "#,##0";
                     row++;
                 }
 
@@ -408,16 +571,26 @@ namespace HeThongQuanLyVanPhong.Services
         private void ReplaceInElement(OpenXmlElement element, Dictionary<string, string> replacements)
         {
             foreach (var paragraph in element.Descendants<Paragraph>())
+            {
                 MergeRunsInParagraph(paragraph);
-
+            }
             foreach (var text in element.Descendants<Text>())
             {
-                if (text.Text == null) continue;
+                if (string.IsNullOrEmpty(text.Text)) continue;
+
                 string newText = text.Text;
                 foreach (var kvp in replacements)
-                    newText = newText.Replace(kvp.Key, kvp.Value);
+                {
+                    if (newText.Contains(kvp.Key))
+                    {
+                        newText = newText.Replace(kvp.Key, kvp.Value ?? "");
+                    }
+                }
+
                 if (newText != text.Text)
+                {
                     text.Text = newText;
+                }
             }
         }
     }
