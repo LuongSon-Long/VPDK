@@ -21,8 +21,12 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
         public async Task<IActionResult> GetList(bool onlyChuaKetThuc = true)
         {
             var userId = GetCurrentUserId();
+            var userTinhId = HttpContext.Session.GetInt32("UserTinhId") ?? 0;
+            var userDonViId = GetCurrentDonViId(); 
             if (userId == 0) return Unauthorized();
-            var list = await _hoSoService.GetByTaiKhoanAsync(userId, onlyChuaKetThuc);
+            var chucVu = HttpContext.Session.GetString("ChucVu") ?? "";
+            var list = await _hoSoService.GetByTaiKhoanAsync(userId, userDonViId, userTinhId, chucVu, onlyChuaKetThuc);
+
             return Ok(list);
         }
 

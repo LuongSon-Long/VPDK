@@ -87,7 +87,7 @@
                     foreach (var module in displayModules)
                     {
                         <div class="col-6 col-md-4 col-lg-3 mb-4">
-                            <a href="javascript:void(0);" onclick="kiemTraTruyCap('@module.Url', event)" class="text-decoration-none text-dark module-link">
+                            <a href="javascript:void(0);" data-url="@module.Url" class="text-decoration-none text-dark module-link">
                                 <div class="card h-100 border bg-white shadow-sm module-card">
                                     <div class="card-body py-4">
                                         <i class="bi @module.IconClass module-icon"></i>
@@ -115,44 +115,10 @@
 <script>
     const SERVER_TINH_ID = parseInt('@sessionTinhId') || 0;
 
-    function kiemTraTruyCap(url, e) {
-        if (e) e.preventDefault(); 
-
-        const currentCboVal = $('#cboTenTinhHienThi').val();
-        if (SERVER_TINH_ID === 0 && (!currentCboVal || currentCboVal === "0")) {
-            alert('Vui lòng lựa chọn "Đơn vị hành chính tỉnh" trước khi truy cập chức năng!');
-
-            const $cbo = $('#cboTenTinhHienThi');
-            $cbo.focus().addClass('border-danger border-2 text-danger shadow');
-
-            setTimeout(() => {
-                $cbo.removeClass('border-danger border-2 text-danger shadow');
-            }, 2000);
-
-            return false; 
-        }
-
-        if (idTinhDuocChon > 0) {
-            $.ajax({
-                url: '/api/auth/set-tinh',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ idTinh: idTinhDuocChon }),
-                success: function () {
-                    window.location.href = url;
-                },
-                error: function () {
-                    alert('Đã xảy ra lỗi khi đồng bộ dữ liệu Tỉnh lên hệ thống!');
-                }
-            });
-        } else {
-            window.location.href = url;
-        }
-    }
-
     $(document).ready(function () {
         const userTinhId = SERVER_TINH_ID;
         const $cboTenTinh = $('#cboTenTinhHienThi');
+
         $.ajax({
             url: '/api/dodac/dropdown/all-tinh',
             method: 'GET',
@@ -170,17 +136,47 @@
                 $cboTenTinh.html('<option value="0">Lỗi tải danh sách tỉnh</option>');
             }
         });
+
         $cboTenTinh.on('change', function () {
             const selectedTinhId = parseInt($(this).val()) || 0;
-
             if (selectedTinhId > 0) {
                 $(this).removeClass('border-danger border-2 text-danger shadow');
+            }
+        });
+        $(document).on('click', '.module-link', function (e) {
+            e.preventDefault(); 
+            const url = $(this).data('url'); 
+            const idTinhDuocChon = parseInt($cboTenTinh.val()) || 0;
+            if (SERVER_TINH_ID === 0 && idTinhDuocChon === 0) {
+                alert('Vui lòng lựa chọn "Đơn vị hành chính tỉnh" trước khi truy cập chức năng!');
+
+                $cboTenTinh.focus().addClass('border-danger border-2 text-danger shadow');
+                setTimeout(() => {
+                    $cboTenTinh.removeClass('border-danger border-2 text-danger shadow');
+                }, 2000);
+
+                return false;
+            }
+
+            if (idTinhDuocChon > 0) {
+                $(this).css('opacity', '0.5');
+
                 $.ajax({
-                    url: '/api/auth/set-tinh',
+                    url: '/api/Auth/set-tinh', 
                     method: 'POST',
                     contentType: 'application/json',
-                    data: JSON.stringify({ idTinh: selectedTinhId })
+                    data: JSON.stringify({ idTinh: idTinhDuocChon }),
+                    success: function () {
+                        window.location.href = url;
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Lỗi đồng bộ Tỉnh:", error);
+                        alert('Không thể lưu thông tin Tỉnh. Vui lòng đảm bảo bạn đã chạy (Build) lại code C# ở Backend!');
+                        $(this).css('opacity', '1');
+                    }.bind(this)
                 });
+            } else {
+                window.location.href = url;
             }
         });
     });

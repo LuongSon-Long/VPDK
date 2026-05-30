@@ -24,17 +24,40 @@ namespace HeThongQuanLyVanPhong.Services
             return null;
         }
 
-        public async Task<List<HoSoDoDacDto>> GetByTaiKhoanAsync(int taiKhoanId, bool onlyChuaKetThuc = true)
+        public async Task<List<HoSoDoDacDto>> GetByTaiKhoanAsync(int taiKhoanId, int userDonViId, int userTinhId, string role, bool onlyChuaKetThuc = true)
         {
             var query = _context.DangKyDoDacs
                 .Include(x => x.IddonViCongTacNavigation)
                 .Include(x => x.IdxaNavigation)
                 .Include(x => x.IdtinhNavigation)
                 .Include(x => x.IdtaiKhoanDoNavigation)
-                .Where(x => x.IdtaiKhoan == taiKhoanId);
+                .AsQueryable();
+
+            if (role != null && role.Trim().Equals("TiepNhan", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(x => x.Idtinh == userTinhId
+                              && x.IddonViCongTac == userDonViId
+                              && (x.IdtaiKhoan == taiKhoanId || x.IdtaiKhoan == -1));
+            }
+            else
+            {
+                query = query.Where(x => x.IdtaiKhoan == taiKhoanId && x.Idtinh == userTinhId);
+            }
+
             if (onlyChuaKetThuc)
-                query = query.Where(x => x.TrangThaiDo != "KetThuc");
-            var list = await query.OrderByDescending(x => x.Id).ToListAsync();
+            {
+                query = query.Where(x => x.TrangThaiDo != "KetThuc" && x.TrangThaiDo != null);
+            }
+
+            var list = await query
+                .AsSplitQuery()
+                .Include(x => x.IddonViCongTacNavigation)
+                .Include(x => x.IdxaNavigation)
+                .Include(x => x.IdtinhNavigation)
+                .Include(x => x.IdtaiKhoanDoNavigation)
+                .OrderByDescending(x => x.Id)
+                .ToListAsync();
+
             return list.Select(x => new HoSoDoDacDto
             {
                 Id = x.Id,

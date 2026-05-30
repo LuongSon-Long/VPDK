@@ -12,17 +12,15 @@ namespace HeThongQuanLyVanPhong.Repositories
             _context = context;
         }
 
-        public async Task<List<DangKyDoDac>> GetByTaiKhoanAsync(int taiKhoanId, bool onlyChuaKetThuc = true)
+        public async Task<List<DangKyDoDac>> GetByTaiKhoanAsync()
         {
-            var query = _context.DangKyDoDacs
+            return await _context.DangKyDoDacs
                 .Include(x => x.IddonViCongTacNavigation)
                 .Include(x => x.IdxaNavigation)
                 .Include(x => x.IdtinhNavigation)
                 .Include(x => x.IdtaiKhoanDoNavigation)
-                .Where(x => x.IdtaiKhoan == taiKhoanId);
-            if (onlyChuaKetThuc)
-                query = query.Where(x => x.TrangThaiDo != "KetThuc");
-            return await query.OrderByDescending(x => x.Id).ToListAsync();
+                .OrderByDescending(x => x.Id)
+                .ToListAsync();
         }
 
         public async Task<DangKyDoDac?> GetByIdAsync(int id)
