@@ -274,9 +274,9 @@ namespace HeThongQuanLyVanPhong.Services
             {
                 var worksheet = workbook.Worksheets.Add("BaoCaoChiTiet");
                 string[] headers = {
-                    "Tên chủ sử dụng", "Địa chỉ thửa đất", "Xã/Phường","Đơn vị đo đạc", "Năm đo", "Số hiệu BV",
-                    "Loại bản vẽ", "Số tờ", "Số thửa", "Diện tích", "Ngày lập", "Người đo, kiểm tra","Người duyệt",
                     "Ký hiệu HĐ", "Số hóa đơn", "Ngày hóa đơn", "Số tiền", "Chi phí lao động", "Tiền làm tròn", "Văn bản quy định giá",
+                    "Tên chủ sử dụng", "Địa chỉ thửa đất", "Xã/Phường","Đơn vị đo đạc", "Năm đo", "Số hiệu BV",
+                    "Loại bản vẽ", "Số tờ", "Số thửa", "Diện tích", "Ngày lập", "Người đo, kiểm tra","Người duyệt",                    
                     "Người, đơn vị đăng ký", "Số hợp đồng", "Ngày hợp đồng", "Số điện thoại", "Số Phiếu Giao", "Ngày Giao", "Ngày Yêu Cầu", "Ngày Đo", "Người được giao xử lý"
                 };
 
@@ -292,26 +292,27 @@ namespace HeThongQuanLyVanPhong.Services
                 int row = 2;
                 foreach (var item in data)
                 {
-                    worksheet.Cell(row, 1).Value = item.bv.TenCsd;
-                    worksheet.Cell(row, 2).Value = item.bv.DiaChiThuaDat;
-                    worksheet.Cell(row, 3).Value = item.xa?.TenXa;
-                    worksheet.Cell(row, 4).Value = item.bv.DonViDoDac;
-                    worksheet.Cell(row, 5).Value = item.bv.NamDoDac;
-                    worksheet.Cell(row, 6).Value = item.bv.SoHieuBanVe;
-                    worksheet.Cell(row, 7).Value = item.bv.LoaiBanVe;
-                    worksheet.Cell(row, 8).Value = item.bv.ToBd;
-                    worksheet.Cell(row, 9).Value = item.bv.SoHieuThua;
-                    worksheet.Cell(row, 10).Value = item.bv.DienTich;
-                    worksheet.Cell(row, 11).Value = item.bv.NgayLap?.ToString("dd/MM/yyyy");
-                    worksheet.Cell(row, 12).Value = item.tk?.HoVaTen;
-                    worksheet.Cell(row, 13).Value = item.tkKy?.HoVaTen;
-                    worksheet.Cell(row, 14).Value = item.tt.KyHieuHoaDon;
-                    worksheet.Cell(row, 15).Value = item.tt.SoHoaDon;
-                    worksheet.Cell(row, 16).Value = item.tt.NgayHoaDon?.ToString("dd/MM/yyyy");
-                    worksheet.Cell(row, 17).Value = item.dg?.SoTien ?? 0;
-                    worksheet.Cell(row, 18).Value = item.dg?.ChiPhiLaoDong ?? 0;
-                    worksheet.Cell(row, 19).Value = item.dg?.TienLamTron ?? 0;
-                    worksheet.Cell(row, 20).Value = item.dg?.VanBanQuyDinhGia;
+                    worksheet.Cell(row, 1).Value = item.tt.KyHieuHoaDon;
+                    worksheet.Cell(row, 2).Value = item.tt.SoHoaDon;
+                    worksheet.Cell(row, 3).Value = item.tt.NgayHoaDon?.ToString("dd/MM/yyyy");
+                    worksheet.Cell(row, 4).Value = item.dg?.SoTien ?? 0;
+                    worksheet.Cell(row, 5).Value = item.dg?.ChiPhiLaoDong ?? 0;
+                    worksheet.Cell(row, 6).Value = item.dg?.TienLamTron ?? 0;
+                    worksheet.Cell(row, 7).Value = item.dg?.VanBanQuyDinhGia;
+
+                    worksheet.Cell(row, 8).Value = item.bv.TenCsd;
+                    worksheet.Cell(row, 9).Value = item.bv.DiaChiThuaDat;
+                    worksheet.Cell(row, 10).Value = item.xa?.TenXa;
+                    worksheet.Cell(row, 11).Value = item.bv.DonViDoDac;
+                    worksheet.Cell(row, 12).Value = item.bv.NamDoDac;
+                    worksheet.Cell(row, 13).Value = item.bv.SoHieuBanVe;
+                    worksheet.Cell(row, 14).Value = item.bv.LoaiBanVe;
+                    worksheet.Cell(row, 15).Value = item.bv.ToBd;
+                    worksheet.Cell(row, 16).Value = item.bv.SoHieuThua;
+                    worksheet.Cell(row, 17).Value = item.bv.DienTich;
+                    worksheet.Cell(row, 18).Value = item.bv.NgayLap?.ToString("dd/MM/yyyy");
+                    worksheet.Cell(row, 19).Value = item.tk?.HoVaTen;
+                    worksheet.Cell(row, 20).Value = item.tkKy?.HoVaTen;
                     worksheet.Cell(row, 21).Value = item.dk.NguoiDangKy;
                     worksheet.Cell(row, 22).Value = item.dk.SoHopDong;
                     worksheet.Cell(row, 23).Value = item.dk.NgayHopDong;

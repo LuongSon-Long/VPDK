@@ -1,5 +1,5 @@
 ﻿@* Views/DoDac/_PartialBanVe.cshtml *@
-@* Không cần @@model — toàn bộ dữ liệu lấy qua API *@
+@* Không cần @model — toàn bộ dữ liệu lấy qua API *@
 
 <div class="row h-100" id="vungBanVe">
 
@@ -49,20 +49,18 @@
                     <label class="small fw-bold">Địa chỉ thửa đất:</label>
                     <input type="text" id="bv2_DiaChiThuaDat" class="form-control form-control-sm" />
                 </div>
-
-                <div class="col-md-6">
-                    <label class="small fw-bold">Tỉnh/Thành:</label>
-                    <select id="bv2_IDTinhSel" class="form-select form-select-sm">
-                        <option value="">-- Chọn tỉnh --</option>
-                    </select>
-                </div>
                 <div class="col-md-6">
                     <label class="small fw-bold">Xã/Phường:</label>
                     <select id="bv2_IDXa" class="form-select form-select-sm">
                         <option value="">-- Chọn xã --</option>
                     </select>
                 </div>
-
+                <div class="col-md-6">
+                    <label class="small fw-bold">Tỉnh/Thành:</label>
+                    <select id="bv2_IDTinhSel" class="form-select form-select-sm">
+                        <option value="">-- Chọn tỉnh --</option>
+                    </select>
+                </div>                
                 <div class="col-md-4">
                     <label class="small fw-bold">Tờ bản đồ:</label>
                     <input type="text" id="bv2_ToBD" class="form-control form-control-sm" />
@@ -258,7 +256,7 @@
                                    class="form-control form-control-sm" placeholder="dd/MM/yyyy" />
                         </div>
                     </div>
-                    
+
                     <div class="col-12 mt-2">
                         <div class="form-check form-switch fs-5">
                             <input class="form-check-input" type="checkbox" id="dg2_DaThanhToan" />
@@ -287,10 +285,10 @@
     // ================================================================
     // STATE nội bộ của Partial BanVe
     // ================================================================
-    var bv2_CanAction    = false;   // quyền sửa/xóa
-    var bv2_IDHoSo       = 0;       // id hồ sơ hiện tại
-    var bv2_IDDonVi      = 0;       // để load dropdown cán bộ
-    var bv2_PaidIds      = [];      // danh sách idBanVe đã thanh toán
+    var bv2_CanAction = false;   // quyền sửa/xóa
+    var bv2_IDHoSo = 0;       // id hồ sơ hiện tại
+    var bv2_IDDonVi = 0;       // để load dropdown cán bộ
+    var bv2_PaidIds = [];      // danh sách idBanVe đã thanh toán
 
     // ================================================================
     // ENTRY POINT — Index.cshtml gọi sau khi inject HTML
@@ -298,35 +296,24 @@
     // ================================================================
     async function fxbv_Init(idHoSo) {
         bv2_IDHoSo = idHoSo;
-
-        // 1. Lấy thông tin hồ sơ để xác định canAction + idDonVi + idTinh
         try {
-            // Lấy từ allHoSoData đã có sẵn trong Index (không cần gọi thêm API)
             const hs = (allHoSoData || []).find(h => h.id === idHoSo);
             if (hs) {
                 bv2_CanAction = (hs.idTaiKhoan === SESSION_USER_ID) &&
-                                (hs.trangThaiDo !== 'KetThuc');
-                bv2_IDDonVi   = hs.idDonViCongTac || 0;
+                    (hs.trangThaiDo !== 'KetThuc');
+                bv2_IDDonVi = hs.idDonViCongTac || 0;
                 $('#bv2_IDTinh').val(hs.idTinh || '');
             }
-        } catch(e) {
+        } catch (e) {
             console.warn('fxbv_Init: không lấy được thông tin hồ sơ', e);
         }
-
-        // 2. Áp quyền lên UI
         bv2_ApDungQuyen();
-
-        // 3. Load dropdowns song song
         await Promise.all([
             bv2_LoadTinhDropdown(),
             bv2_LoadLoaiBanVe(),
             bv2_LoadCanBo()
         ]);
-
-        // 4. Load danh sách bản vẽ
         await bv2_LoadDanhSach();
-
-        // 5. Bind events
         bv2_BindEvents();
     }
 
@@ -362,8 +349,6 @@
         try {
             const [dsBanVe, dsThanhToan] = await Promise.all([
                 apiGet(`/api/dodac/banve/by-hoso/${bv2_IDHoSo}`),
-                // Lấy danh sách id đã thanh toán bằng cách check từng cái
-                // Dùng BanVeDto: không có field isPaid → cần lấy riêng
                 Promise.resolve([])
             ]);
 
@@ -381,7 +366,7 @@
             }
 
             bv2_RenderDanhSach(dsBanVe || []);
-        } catch(e) {
+        } catch (e) {
             $('#bv2_ListBanVe').html(
                 `<div class="text-danger small p-2">Lỗi tải bản vẽ: ${e.message}</div>`);
         }
@@ -406,15 +391,15 @@
             if (isNotOk) badges += `<span class="badge bg-danger">không ĐK</span>`;
 
             return `
-            <a href="javascript:void(0)" class="list-group-item list-group-item-action bv2-item" data-id="${bv.id}">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="fw-bold text-primary small">
-                        Tờ: ${bv.toBD || '?'} - Thửa: ${bv.soHieuThua || '?'}
+                <a href="javascript:void(0)" class="list-group-item list-group-item-action bv2-item" data-id="${bv.id}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="fw-bold text-primary small">
+                            [#${bv.id}] - Tờ: ${bv.toBD || '?'} - Thửa: ${bv.soHieuThua || '?'}
+                        </div>
+                        <div>${badges}</div>
                     </div>
-                    <div>${badges}</div>
-                </div>
-                <small class="text-muted">${bv.trangThai || ''}</small>
-            </a>`;
+                    <small class="text-muted">${bv.trangThai || ''}</small>
+                </a>`;
         }).join('');
         $('#bv2_ListBanVe').html(html);
     }
@@ -436,7 +421,7 @@
                 $('#bv2_IDTinhSel').val(idTinhHoSo);
                 await bv2_LoadXaTheoTinh(idTinhHoSo);
             }
-        } catch(e) { console.error('bv2_LoadTinhDropdown:', e); }
+        } catch (e) { console.error('bv2_LoadTinhDropdown:', e); }
     }
 
     // ================================================================
@@ -445,8 +430,11 @@
     // ================================================================
     async function bv2_LoadXaTheoTinh(idTinh, selectedIdXa = null) {
         $('#bv2_IDXa').html('<option value="">Đang tải...</option>');
+        if (!idTinh) {
+            $('#bv2_IDXa').html('<option value="">-- Chọn Xã --</option>');
+            return;
+        }
         try {
-            // XaByTinhDto: { id, maXa, tenXa }
             const data = await apiGet(`/api/dodac/dropdown/xa-by-tinh/${idTinh}`);
             let opts = '<option value="">-- Chọn xã --</option>';
             (data || []).forEach(x => {
@@ -454,7 +442,12 @@
                 opts += `<option value="${x.id}" data-maxa="${x.maXa || ''}" ${sel}>${x.tenXa}</option>`;
             });
             $('#bv2_IDXa').html(opts);
-        } catch(e) {
+
+            // Bổ sung select2 để Xã/Phường có thể gõ tìm kiếm (rất an toàn cho thẻ select)
+            if ($.fn.select2) {
+                $('#bv2_IDXa').select2({ theme: 'bootstrap-5', width: '100%', dropdownParent: $('#modalBanVe') });
+            }
+        } catch (e) {
             $('#bv2_IDXa').html('<option value="">-- Lỗi tải --</option>');
         }
     }
@@ -470,7 +463,7 @@
                 opts += `<option value="${l.ten}">${l.ten}</option>`;
             });
             $('#bv2_LoaiBanVe').html(opts);
-        } catch(e) { console.error('bv2_LoadLoaiBanVe:', e); }
+        } catch (e) { console.error('bv2_LoadLoaiBanVe:', e); }
     }
 
     // ================================================================
@@ -490,21 +483,18 @@
                 opts += `<option value="${d.tenDonVi || d.ten}">${d.tenDonVi || d.ten}</option>`;
             });
             opts += `
-                    <option value="Đơn vị tư vấn">Đơn vị tư vấn</option>
-                    <option value="Đơn vị khác">Đơn vị khác</option>
-                `;
+                        <option value="Đơn vị tư vấn">Đơn vị tư vấn</option>
+                        <option value="Đơn vị khác">Đơn vị khác</option>
+                    `;
             $select.html(opts);
         } catch (e) {
             console.error('Lỗi load đơn vị đo đạc:', e);
             $select.html('<option value="">-- Lỗi tải --</option>');
         }
 
-
-        // 1. Lấy tên đơn vị đăng nhập từ Session (chuỗi an toàn)
         const sessionDonViName = '@Html.Raw(Context.Session.GetString("DonViCongTac")?.Trim() ?? "")';
         let myDonViId = 0;
 
-        // 2. Dò tìm ID đơn vị của tài khoản đăng nhập thông qua Tên
         if (sessionDonViName) {
             try {
                 const dsDonVi = await apiGet('/api/dodac/dropdown/all-donvi');
@@ -513,7 +503,6 @@
             } catch (e) { }
         }
 
-        // 3. Ưu tiên lấy ID đơn vị của tài khoản, nếu không có mới dùng ID đơn vị của hồ sơ (bv2_IDDonVi)
         const targetDonViId = myDonViId > 0 ? myDonViId : bv2_IDDonVi;
 
         if (!targetDonViId) return;
@@ -522,7 +511,6 @@
             const data = await apiGet(`/api/dodac/dropdown/taikhoan-by-donvi/${targetDonViId}`);
             let opts = '<option value="">-- Chọn cán bộ --</option>';
             (data || []).forEach(cb => {
-                // DropdownDto: { id, ten }
                 opts += `<option value="${cb.id}">${cb.ten}</option>`;
             });
             $('#bv2_IDNguoiDo, #bv2_IDNguoiKy').html(opts);
@@ -552,20 +540,23 @@
         // Nút Xóa
         $('#bv2_BtnDelete').off('click').on('click', () => bv2_Delete());
 
-        // Nút Lấy số tự động → dùng lại modalSoManh của Index
+        // Nút Lấy số tự động -> BẮT THEO THẺ SELECT CHUẨN
         $('#bv2_BtnLaySo').off('click').on('click', () => {
             const $selXa = $('#bv2_IDXa');
-            const idXa   = $selXa.val();
-            const tenXa  = $selXa.find('option:selected').text();
-            const maXa   = $selXa.find('option:selected').data('maxa');
+            const idXa = $selXa.val();
+            const tenXa = $selXa.find('option:selected').text();
+            const maXa = $selXa.find('option:selected').data('maxa');
+
             if (!idXa) {
                 alert('Vui lòng chọn Xã/Phường trước!');
+                $selXa.focus();
                 return;
             }
             if (!maXa) {
                 alert('Xã này chưa có Mã xã trong hệ thống. Vui lòng liên hệ quản trị viên!');
                 return;
             }
+
             $('#sh_TenXa_Display').val(tenXa);
             $('#sh_MaXa_Hidden').val(maXa);
             $('#sh_Nam').val($('#bv2_NamDoDac').val() || new Date().getFullYear());
@@ -587,55 +578,52 @@
             bv2_ClearTien();
             if (!vb) return;
             try {
-                // API trả về List<string>
                 const data = await apiGet(`/api/dodac/dongiathanhtoan/loaibanve?vanBan=${encodeURIComponent(vb)}`);
                 let opts = '<option value="">-- Chọn loại --</option>';
                 (data || []).forEach(x => { opts += `<option value="${x}">${x}</option>`; });
                 $('#dg2_LoaiBanVe').html(opts).prop('disabled', false);
-            } catch(e) { console.error(e); }
+            } catch (e) { console.error(e); }
         });
 
         $('#dg2_LoaiBanVe').off('change').on('change', async function () {
-            const vb  = $('#dg2_VanBan').val();
+            const vb = $('#dg2_VanBan').val();
             const lbv = $(this).val();
             $('#dg2_LoaiKhuVuc, #dg2_DinhMucTinh')
                 .html('<option value="">--</option>').prop('disabled', true);
             bv2_ClearTien();
             if (!vb || !lbv) return;
             try {
-                // API trả về List<string>
                 const data = await apiGet(
                     `/api/dodac/dongiathanhtoan/khu-vuc?vanBan=${encodeURIComponent(vb)}&loaiBanVe=${encodeURIComponent(lbv)}`
                 );
                 let opts = '<option value="">-- Chọn khu vực --</option>';
                 (data || []).forEach(x => { opts += `<option value="${x}">${x}</option>`; });
                 $('#dg2_LoaiKhuVuc').html(opts).prop('disabled', false);
-            } catch(e) { console.error(e); }
+            } catch (e) { console.error(e); }
         });
 
         $('#dg2_LoaiKhuVuc').off('change').on('change', async function () {
-            const vb  = $('#dg2_VanBan').val();
+            const vb = $('#dg2_VanBan').val();
             const lbv = $('#dg2_LoaiBanVe').val();
             const lkv = $(this).val();
             $('#dg2_DinhMucTinh').html('<option value="">--</option>').prop('disabled', true);
             bv2_ClearTien();
             if (!vb || !lbv || !lkv) return;
             try {
-                // ChiTietDonGiaDto[]: { id, dinhMucTinh, soTien, chiPhiLaoDong, tienLamTron }
                 const data = await apiGet(
                     `/api/dodac/dongiathanhtoan/chitiet?vanBan=${encodeURIComponent(vb)}&loaiBanVe=${encodeURIComponent(lbv)}&loaiKhuVuc=${encodeURIComponent(lkv)}`
                 );
                 let opts = '<option value="">-- Chọn định mức --</option>';
                 (data || []).forEach(x => {
                     opts += `<option value="${x.id}"
-                        data-sotien="${x.soTien}"
-                        data-chiphi="${x.chiPhiLaoDong}"
-                        data-lamtron="${x.tienLamTron}">
-                        ${x.dinhMucTinh}
-                    </option>`;
+                            data-sotien="${x.soTien}"
+                            data-chiphi="${x.chiPhiLaoDong}"
+                            data-lamtron="${x.tienLamTron}">
+                            ${x.dinhMucTinh}
+                        </option>`;
                 });
                 $('#dg2_DinhMucTinh').html(opts).prop('disabled', false);
-            } catch(e) { console.error(e); }
+            } catch (e) { console.error(e); }
         });
 
         $('#dg2_DinhMucTinh').off('change').on('change', function () {
@@ -653,15 +641,10 @@
     // ================================================================
     async function bv2_LoadChiTiet(id) {
         try {
-            // BanVeDto: { id, tenCSD, diaChiThuaDat, idXa, idTinh, toBD, soHieuThua,
-            //             dienTich, loaiBanVe, namDoDac, soHieuBanVe, idNguoiDo,
-            //             soVB, ngayLap, ngayVB, ngayTrinhKy, idNguoiKy, ngayKy,
-            //             trangThai, ghiChu }
             const d = await apiGet(`/api/dodac/banve/${id}`);
             if (!d) return;
 
             $('#bv2_ID').val(d.id);
-            // Bổ sung đọc nhiều định dạng key JSON do Entity Framework sinh ra
             $('#bv2_IDDangKyDoDac').val(d.iDDangKyDoDac || d.iddangKyDoDac || d.idDangKyDoDac || bv2_IDHoSo);
             $('#bv2_TenCSD').val(d.tenCSD || '');
             $('#bv2_DiaChiThuaDat').val(d.diaChiThuaDat || '');
@@ -683,15 +666,16 @@
             $('#bv2_NgayKy').val(d.ngayKy ? formatDisplayDate(d.ngayKy) : '');
             $('#bv2_KhongDuDieuKien').prop('checked', d.trangThai === 'Không đủ điều kiện');
             bv2_UpdateTrangThai();
-            // [ĐÃ SỬA]: Ép đúng ID Tỉnh / Xã
+
+            // Ép đúng ID Tỉnh / Xã
             const idTinh = d.iDTinh || d.idtinh || d.idTinh;
             const idXa = d.iDXa || d.idxa || d.idXa;
             if (idTinh) {
                 $('#bv2_IDTinhSel').val(idTinh);
                 await bv2_LoadXaTheoTinh(idTinh, idXa);
             }
-            // Nếu đã thu hoặc không có quyền sửa (bv2_CanAction = false), thì khóa nút
-            const isPaid = bv2_PaidIds.includes(d.id);            
+
+            const isPaid = bv2_PaidIds.includes(d.id);
             const shouldDisable = isPaid || !bv2_CanAction;
             $('#bv2_BtnSave').prop('disabled', shouldDisable);
             $('#bv2_BtnDelete').prop('disabled', shouldDisable);
@@ -700,7 +684,7 @@
                 $('#bv2_FormWrapper input, #bv2_FormWrapper select, #bv2_FormWrapper textarea')
                     .prop('disabled', true);
             } else {
-                bv2_ApDungQuyen(); 
+                bv2_ApDungQuyen();
             }
         } catch (e) {
             alert('Lỗi tải chi tiết bản vẽ: ' + e.message);
@@ -733,7 +717,7 @@
         // Mở khóa input
         $('#bv2_BtnSave').prop('disabled', false);
         $('#bv2_BtnDelete').prop('disabled', false);
-        $('#bv2_BtnLaySo').prop('disabled', false);        
+        $('#bv2_BtnLaySo').prop('disabled', false);
         $('#bv2_FormWrapper input, #bv2_FormWrapper select, #bv2_FormWrapper textarea')
             .prop('disabled', false);
         bv2_ApDungQuyen();
@@ -748,9 +732,8 @@
         const isChecked = $('#bv2_KhongDuDieuKien').is(':checked');
         if (isChecked) {
             $('#bv2_TrangThai').val('Không đủ điều kiện').addClass('text-danger fw-bold');
-            return; // Dừng hàm tại đây, không xét tiếp các trạng thái khác
+            return;
         }
-
 
         $('#bv2_TrangThai').removeClass('text-danger fw-bold');
         let tt = 'Chưa lập bản vẽ';
@@ -763,10 +746,6 @@
 
     // ================================================================
     // LƯU BẢN VẼ → POST /api/dodac/banve
-    // SaveBanVeDto: { id, iDDangKyDoDac, tenCSD, diaChiThuaDat, iDTinh, iDXa,
-    //                toBD, soHieuThua, dienTich, loaiBanVe, namDoDac,
-    //                soHieuBanVe, iDNguoiDo, soVB, ngayLapStr, ngayVBStr,
-    //                ngayTrinhKyStr, iDNguoiKy, ngayKyStr, ghiChu }
     // ================================================================
     async function bv2_Save() {
         const idNguoiDo = parseInt($('#bv2_IDNguoiDo').val()) || null;
@@ -774,23 +753,23 @@
         const idTinh = parseInt($('#bv2_IDTinhSel').val()) || null;
         const idXa = parseInt($('#bv2_IDXa').val()) || null;
         const trangThaiHienTai = $('#bv2_TrangThai').val();
+
+        let trangThaiMoi = trangThaiHienTai;
         if ($('#bv2_KhongDuDieuKien').is(':checked')) {
             trangThaiMoi = 'Không đủ điều kiện';
         }
+
         const model = {
             id: parseInt($('#bv2_ID').val()) || 0,
-
             iDDangKyDoDac: bv2_IDHoSo,
-            iddangKyDoDac: bv2_IDHoSo, // Bổ sung key map chuẩn EF Core
-
+            iddangKyDoDac: bv2_IDHoSo,
             tenCSD: $('#bv2_TenCSD').val(),
             diaChiThuaDat: $('#bv2_DiaChiThuaDat').val(),
 
             iDTinh: idTinh,
-            idtinh: idTinh,     // Bổ sung key map chuẩn EF Core
-
+            idtinh: idTinh,
             iDXa: idXa,
-            idxa: idXa,       // Bổ sung key map chuẩn EF Core
+            idxa: idXa,
 
             toBD: $('#bv2_ToBD').val(),
             soHieuThua: $('#bv2_SoHieuThua').val(),
@@ -799,7 +778,6 @@
             namDoDac: parseInt($('#bv2_NamDoDac').val()) || null,
             soHieuBanVe: parseInt($('#bv2_SoHieuBanVe').val()) || null,
 
-            // [ĐÃ SỬA]: Gửi đủ định dạng của trường ID Người đo
             iDNguoiDo: idNguoiDo,
             idnguoiDo: idNguoiDo,
             idNguoiDo: idNguoiDo,
@@ -812,10 +790,10 @@
             iDNguoiKy: idNguoiKy,
             idnguoiKy: idNguoiKy,
             idNguoiKy: idNguoiKy,
-            
+
             ngayKyStr: $('#bv2_NgayKy').val(),
             donViDoDac: $('#bv2_DonViDoDac').val(),
-            trangThai: trangThaiHienTai,
+            trangThai: trangThaiMoi,
             ghiChu: $('#bv2_GhiChu').val()
         };
 
@@ -836,9 +814,7 @@
         }
     }
 
-    // ================================================================
     // XÓA BẢN VẼ → DELETE /api/dodac/banve/{id}
-    // ================================================================
     async function bv2_Delete() {
         const id = parseInt($('#bv2_ID').val()) || 0;
         if (id === 0) {
@@ -855,7 +831,7 @@
             } else {
                 alert('Không xóa được: ' + (res?.message || ''));
             }
-        } catch(e) {
+        } catch (e) {
             alert('Lỗi kết nối: ' + e.message);
         }
     }
@@ -879,24 +855,19 @@
         $('#dg2_BtnLuu').prop('disabled', false).html('<i class="bi bi-save"></i> Lưu thanh toán');
         bv2_ClearTien();
 
-        // Load văn bản (cấp 1)
-        // API trả về List<string> trực tiếp, không phải object
         try {
             const dsVB = await apiGet('/api/dodac/dongiathanhtoan/vanban');
             let opts = '<option value="">-- Chọn văn bản --</option>';
             (dsVB || []).forEach(x => { opts += `<option value="${x}">${x}</option>`; });
             $('#dg2_VanBan').html(opts);
-        } catch(e) { console.error(e); }
+        } catch (e) { console.error(e); }
 
-        // Load dữ liệu cũ nếu có
         try {
-            // ThanhToanResponseDto: { idDonGia, kyHieu, soHD, ngayHD, daThanhToan,
-            //                         vanBan, loaiBanVe, loaiKhuVuc }
             const tt = await apiGet(`/api/dodac/dongiathanhtoan/thanhtoan/${idBanVe}`);
             if (tt) {
-                $('#dg2_KyHieuHoaDon').val(tt.kyHieu  || '');
-                $('#dg2_SoHoaDon').val(tt.soHD         || '');
-                $('#dg2_NgayHoaDon').val(tt.ngayHD     || '');
+                $('#dg2_KyHieuHoaDon').val(tt.kyHieu || '');
+                $('#dg2_SoHoaDon').val(tt.soHD || '');
+                $('#dg2_NgayHoaDon').val(tt.ngayHD || '');
                 $('#dg2_DaThanhToan').prop('checked', tt.daThanhToan);
 
                 if (tt.daThanhToan) {
@@ -904,13 +875,12 @@
                         .html('Đã thanh toán (Khóa)');
                 }
 
-                // Cascade fill: vanBan → loaiBanVe → loaiKhuVuc → idDonGia
                 if (tt.vanBan) {
                     await bv2_CascadeFill(tt.vanBan, tt.loaiBanVe, tt.loaiKhuVuc, tt.idDonGia);
                 }
             }
-        } catch(e) {
-            // Chưa có thanh toán — bình thường
+        } catch (e) {
+            // Chưa có thanh toán
         }
 
         new bootstrap.Modal(document.getElementById('bv2_ModalDonGia')).show();
@@ -920,20 +890,16 @@
     // FILL CASCADE COMBOBOX ĐƠN GIÁ (có data cũ)
     // ================================================================
     async function bv2_CascadeFill(vanBan, loaiBanVe, loaiKhuVuc, idDonGia) {
-        // Cấp 1: chọn VB
         $('#dg2_VanBan').val(vanBan);
-
-        // Cấp 2: load + chọn loại bản vẽ
         try {
             const d2 = await apiGet(`/api/dodac/dongiathanhtoan/loaibanve?vanBan=${encodeURIComponent(vanBan)}`);
             let o2 = '<option value="">-- Chọn --</option>';
             (d2 || []).forEach(x => { o2 += `<option value="${x}">${x}</option>`; });
             $('#dg2_LoaiBanVe').html(o2).prop('disabled', false).val(loaiBanVe);
-        } catch(e) { return; }
+        } catch (e) { return; }
 
         if (!loaiBanVe) return;
 
-        // Cấp 3: load + chọn khu vực
         try {
             const d3 = await apiGet(
                 `/api/dodac/dongiathanhtoan/khu-vuc?vanBan=${encodeURIComponent(vanBan)}&loaiBanVe=${encodeURIComponent(loaiBanVe)}`
@@ -941,11 +907,10 @@
             let o3 = '<option value="">-- Chọn --</option>';
             (d3 || []).forEach(x => { o3 += `<option value="${x}">${x}</option>`; });
             $('#dg2_LoaiKhuVuc').html(o3).prop('disabled', false).val(loaiKhuVuc);
-        } catch(e) { return; }
+        } catch (e) { return; }
 
         if (!loaiKhuVuc) return;
 
-        // Cấp 4: load + chọn định mức
         try {
             const d4 = await apiGet(
                 `/api/dodac/dongiathanhtoan/chitiet?vanBan=${encodeURIComponent(vanBan)}&loaiBanVe=${encodeURIComponent(loaiBanVe)}&loaiKhuVuc=${encodeURIComponent(loaiKhuVuc)}`
@@ -953,20 +918,18 @@
             let o4 = '<option value="">-- Chọn --</option>';
             (d4 || []).forEach(x => {
                 o4 += `<option value="${x.id}"
-                    data-sotien="${x.soTien}"
-                    data-chiphi="${x.chiPhiLaoDong}"
-                    data-lamtron="${x.tienLamTron}">
-                    ${x.dinhMucTinh}
-                </option>`;
+                        data-sotien="${x.soTien}"
+                        data-chiphi="${x.chiPhiLaoDong}"
+                        data-lamtron="${x.tienLamTron}">
+                        ${x.dinhMucTinh}
+                    </option>`;
             });
             $('#dg2_DinhMucTinh').html(o4).prop('disabled', false).val(idDonGia).trigger('change');
-        } catch(e) { console.error(e); }
+        } catch (e) { console.error(e); }
     }
 
     // ================================================================
-    // LƯU THANH TOÁN → POST /api/dodac/dongiathanhtoan/thanhtoan
-    // ThanhToanBanVeDto: { idBanVe, idDonGia, daThanhToan,
-    //                      kyHieuHoaDon, soHoaDon, ngayHoaDon }
+    // LƯU THANH TOÁN
     // ================================================================
     async function bv2_LuuThanhToan() {
         const idDonGia = parseInt($('#dg2_DinhMucTinh').val()) || 0;
@@ -975,12 +938,12 @@
             return;
         }
         const body = {
-            idBanVe:     parseInt($('#dg2_IDBanVe').val()),
+            idBanVe: parseInt($('#dg2_IDBanVe').val()),
             idDonGia,
             daThanhToan: $('#dg2_DaThanhToan').is(':checked'),
             kyHieuHoaDon: $('#dg2_KyHieuHoaDon').val(),
-            soHoaDon:     $('#dg2_SoHoaDon').val(),
-            ngayHoaDon:   $('#dg2_NgayHoaDon').val()
+            soHoaDon: $('#dg2_SoHoaDon').val(),
+            ngayHoaDon: $('#dg2_NgayHoaDon').val()
         };
         try {
             const res = await apiPost('/api/dodac/dongiathanhtoan/thanhtoan', body);
@@ -989,18 +952,16 @@
                 bootstrap.Modal.getInstance(
                     document.getElementById('bv2_ModalDonGia')
                 ).hide();
-                await bv2_LoadDanhSach(); // refresh badge "đã thu"
+                await bv2_LoadDanhSach();
             } else {
                 alert('Lỗi: ' + (res?.message || ''));
             }
-        } catch(e) {
+        } catch (e) {
             alert('Lỗi kết nối: ' + e.message);
         }
     }
 
-    // ================================================================
     // ĐẨY DỮ LIỆU VÀO KHAY NHỚ TẠM TOÀN CỤC
-    // ================================================================
     function bv2_DuaVaoKhayNhoTam() {
         const idBanVe = parseInt($('#bv2_ID').val()) || 0;
         if (idBanVe === 0) {
@@ -1017,6 +978,7 @@
             alert('Đã đưa bản vẽ vào khay!');
         }
     }
+
     function bv2_ClearTien() {
         $('#dg2_SoTien, #dg2_ChiPhiLaoDong, #dg2_TienLamTron').val('');
     }

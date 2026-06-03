@@ -1,5 +1,17 @@
 ﻿@* _PartialTiepNhan.cshtml - Hoàn toàn dùng API, đọc biến Global từ trang cha *@
-
+<style>
+    #tn_IDXa:disabled,
+    #tn_IDTinh:disabled,
+    input[readonly],
+    select:disabled {
+        border: 2px solid #dc3545 !important;
+        opacity: 1 !important;
+    }
+    .is-filled {
+        background-color: #e2e3e5 !important;
+        color: #000 !important;
+    }
+</style>
 <div class="card border-0 shadow-none">
     <div class="card-header bg-light py-2">
         <h6 class="mb-0 text-primary fw-bold">HỒ SƠ ĐO ĐẠC MỚI</h6>
@@ -52,8 +64,8 @@
             <div class="col-md-4">
                 <label class="small fw-bold">Số điện thoại liên hệ</label>
                 <input type="text" id="tn_SoDienThoai" class="form-control form-control-sm" />
-            </div>           
-            
+            </div>
+
             <div class="col-md-6">
                 <label class="small fw-bold">Địa chỉ thửa đất</label>
                 <input type="text" id="tn_DiaChiThuaDat" class="form-control form-control-sm" />
@@ -103,6 +115,7 @@
     // ============================================================
     // KHỞI TẠO PARTIAL TIẾP NHẬN
     // ============================================================
+    var tn_DanhSachXa = [];
     async function tn_Init() {
         $('#tn_SoHopDong').on('input', function () {
             if ($(this).val().trim() !== "") {
@@ -120,14 +133,14 @@
         if (typeof SESSION_USER_ID !== 'undefined' && SESSION_USER_ID === -1) {
             $('#tn_SoHopDong')
                 .prop('disabled', true)
-                .val('') 
+                .val('')
                 .attr('placeholder', 'Hệ thống tự cấp số');
             $('#btnLaySoHopDong').prop('disabled', true).hide();
         }
 
         // 2. Load dropdown dữ liệu song song
-        await tn_LoadTinh();  
-        await tn_LoadDonVi();  
+        await tn_LoadTinh();
+        await tn_LoadDonVi();
         await tn_LoadQuyTrinh();
 
         // Sự kiện checkbox "Đơn vị khác"
@@ -138,6 +151,17 @@
         // Sự kiện đổi tỉnh → load xã
         $('#tn_IDTinh').off('change').on('change', function () {
             tn_LoadXa($(this).val());
+        });
+        // Sự kiện: Khi người dùng gõ tên xã
+        $('#tn_InputXa').off('input change').on('input change', function () {
+            const textVal = $(this).val().trim();
+            const match = tn_DanhSachXa.find(x => x.tenXa.toLowerCase() === textVal.toLowerCase());
+
+            if (match) {
+                $('#tn_IDXa').val(match.id);
+            } else {
+                $('#tn_IDXa').val('');
+            }
         });
     }
 
@@ -208,8 +232,18 @@
             });
 
             $('#tn_IDTinh').html(opts);
+
+            if ($.fn.select2) {
+                $('#tn_IDTinh').select2({ theme: 'bootstrap-5', width: '100%' });
+            }
+
             if (typeof SESSION_TINH_ID !== 'undefined' && SESSION_TINH_ID > 0) {
                 $('#tn_IDTinh').val(SESSION_TINH_ID);
+
+                if ($.fn.select2) {
+                    $('#tn_IDTinh').trigger('change.select2');
+                }
+
                 $('#tn_IDTinh').prop('disabled', true);
                 await tn_LoadXa(SESSION_TINH_ID);
             }
@@ -220,17 +254,24 @@
 
     async function tn_LoadXa(idTinh) {
         $('#tn_IDXa').html('<option value="">Đang tải...</option>');
+
         if (!idTinh) {
             $('#tn_IDXa').html('<option value="">-- Chọn Xã --</option>');
+            if ($.fn.select2) $('#tn_IDXa').select2({ theme: 'bootstrap-5', width: '100%' });
             return;
         }
+
         try {
             const data = await apiGet(`/api/dodac/dropdown/xa-by-tinh/${idTinh}`);
             let opts = '<option value="">-- Chọn Xã --</option>';
             (data || []).forEach(x => {
-                opts += `<option value="${x.id}">${x.tenXa}</option>`;
+                opts += `<option value="${x.id}" data-maxa="${x.maXa || ''}">${x.tenXa}</option>`;
             });
+
             $('#tn_IDXa').html(opts);
+            if ($.fn.select2) {
+                $('#tn_IDXa').select2({ theme: 'bootstrap-5', width: '100%' });
+            }
         } catch (e) {
             $('#tn_IDXa').html('<option value="">-- Lỗi tải xã --</option>');
         }
@@ -313,4 +354,22 @@
             loadTask('XuLy', null);
         }
     }
+    function tn_ApplyStyles() {
+        $('.form-control, .form-select').each(function () {
+            var el = $(this);
+            var val = el.val();
+
+            if (val && val.toString().trim() !== '' && val !== '0') {
+                el.addClass('is-filled');
+            } else {
+                el.removeClass('is-filled');
+            }
+        });
+    }
+    $(document).on('input change', '.form-control, .form-select', function () {
+        tn_ApplyStyles();
+    });
+    $(document).ready(function () {
+        setTimeout(tn_ApplyStyles, 500);
+    });
 </script>

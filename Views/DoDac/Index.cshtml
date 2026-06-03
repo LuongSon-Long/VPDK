@@ -601,7 +601,7 @@
             paged.forEach(hs => {
 
                 const colHoSo = `
-                    <b class="text-primary text-uppercase">${hs.nguoiDangKy || ''}</b><br>
+                    <b class="text-primary text-uppercase">[ID: ${hs.id}] - ${hs.nguoiDangKy || ''}</b><br>
                     <span class="small"><i class="bi bi-hash"></i> HĐ: ${hs.soHopDong || ''}
                         ${hs.ngayHopDong ? '(' + hs.ngayHopDong + ')' : ''}</span><br>
                     <span class="small text-muted"><i class="bi bi-building"></i>
@@ -685,6 +685,7 @@
                     colThaotac += `
                             ${btnXuLy}                            
                             <button class="btn btn-xs btn-outline-info mb-1" onclick="openLichSu(${hs.id})" title="Lịch sử"><i class="bi bi-clock-history"></i> Lịch sử</button>
+                            <button class="btn btn-xs btn-outline-secondary mb-1" onclick="openHoSoQuet(${hs.id})" title="File đính kèm"><i class="bi bi-file-earmark-pdf"></i> File đính kèm</button>
                             <button class="btn btn-xs btn-outline-success mb-1" onclick="openBanVeModal(${hs.id})" title="Bản vẽ"><i class="bi bi-map"></i> Bản vẽ</button>
                             <button class="btn btn-xs btn-outline-info mb-1" onclick="themVaoKhay('hoso', ${hs.id}, '${labelHoSo.replace(/'/g, "\\'")}')" title="Đưa vào khay"><i class="bi bi-clipboard-plus"></i> Đưa vào khay xuất DS</button>
                             <button class="btn btn-xs btn-outline-warning" onclick="moModalThanhLy(${hs.id})" title="Tạo văn bản"><i class="bi bi-file-word"></i> Tạo Văn bản (Word)</button>
@@ -1137,25 +1138,42 @@
             (dsDonVi || []).forEach(d => {
                 optsDonVi += `<option value="${d.id}">${d.tenDonVi || d.ten}</option>`;
             });
+            const dsTinhList = await apiGet('/api/dodac/dropdown/all-tinh');
+            let optsTinh = '<option value="">-- Chọn Tỉnh --</option>';
+            (dsTinhList || []).forEach(t => optsTinh += `<option value="${t.id}" ${t.id == idTinh ? 'selected' : ''}>${t.ten}</option>`);
 
             const now = new Date();
             const tuNgayDef  = `01/01/${now.getFullYear()}`;
             const denNgayDef = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
-
             $('#vungNoiDung').html(`
-                <div class="p-3">
-                    <div class="row g-2 mb-3">
+                    <div class="p-3">
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-3">
+                            <select id="tc_IDTinh" class="form-select" onchange="loadDonViTheoTinh(this.value, 'tc_IDDonVi')">${optsTinh}</select>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="tc_IDDonVi" class="form-select">${optsDonVi}</select>
+                        </div>
                         <div class="col-md-3">
                             <input type="text" id="tc_TuKhoa" class="form-control" placeholder="Tìm ID, Tên người ĐK, Số HĐ...">
                         </div>
                         <div class="col-md-3">
                             <input type="text" id="tc_TenChuSD" class="form-control" placeholder="Tìm Tên chủ tại Bản vẽ...">
                         </div>
-                        <div class="col-md-2">
-                            <input type="text" id="tc_TuNgay" class="form-control" placeholder="Từ ngày" value="${tuNgayDef}">
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light small text-muted">Từ ngày</span>
+                                <input type="text" id="tc_TuNgay" class="form-control" value="${tuNgayDef}">
+                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <input type="text" id="tc_DenNgay" class="form-control" placeholder="Đến ngày" value="${denNgayDef}">
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light small text-muted">Đến ngày</span>
+                                <input type="text" id="tc_DenNgay" class="form-control" value="${denNgayDef}">
+                            </div>
                         </div>
                         <div class="col-md-2">
                             <button class="btn btn-primary w-100" onclick="thucHienTraCuu()">
@@ -1163,6 +1181,7 @@
                             </button>
                         </div>
                     </div>
+
                     <div id="vungKetQuaTraCuu">
                         <p class="text-center text-muted">Nhập điều kiện và nhấn Tìm kiếm</p>
                     </div>
@@ -1177,6 +1196,7 @@
             $(document).on('input', '#tc_TenChuSD', function () {
                 if ($(this).val().length > 0) $('#tc_TuKhoa').val('');
             });
+
             $(document).off('keypress', '#tc_TuKhoa, #tc_TenChuSD');
             $(document).on('keypress', '#tc_TuKhoa, #tc_TenChuSD', function (e) {
                 if (e.which === 13) {
@@ -1184,33 +1204,47 @@
                     thucHienTraCuu();   
                 }
             });
+
         } catch (e) {
             $('#vungNoiDung').html('<div class="alert alert-danger m-3">Lỗi khởi tạo tra cứu: ' + e.message + '</div>');
         }
     }
 
     async function thucHienTraCuu() {
-        showLoader('#vungKetQuaTraCuu');
-
+        const idTinh = $('#tc_IDTinh').val();
+        const idDonVi = $('#tc_IDDonVi').val();
         const tuKhoa = ($('#tc_TuKhoa').val() || '').trim().toLowerCase();
         const tenChuSD = ($('#tc_TenChuSD').val() || '').trim().toLowerCase();
-        const idDonVi = parseInt($('#tc_IDDonVi').val()) || 0;
+        const tuNgay = $('#tc_TuNgay').val();
+        const denNgay = $('#tc_DenNgay').val();
+
+        if (!idTinh) {
+            alert('Vui lòng chọn Tỉnh/Thành!');
+            return;
+        }
+        if (tuKhoa === '' && tenChuSD === '') {
+            alert('Vui lòng nhập Từ khóa hoặc Tên chủ sử dụng!');
+            return;
+        }
+
+        showLoader('#vungKetQuaTraCuu');
 
         const body = {
-            idDonVi: idDonVi > 0 ? idDonVi : null,
-            tuNgay: $('#tc_TuNgay').val(),
-            denNgay: $('#tc_DenNgay').val(),
+            idTinh: parseInt(idTinh),
+            idDonVi: (idDonVi && idDonVi !== "0") ? parseInt(idDonVi) : null,
+            tuNgay: tuNgay,
+            denNgay: denNgay,
             tenChuSD: tenChuSD 
         };
 
         try {
-            let data = await apiPost('/api/dodac/baocao/chitiet', body);       
-           
+            let data = await apiPost('/api/dodac/baocao/chitiet', body);        
 
             if (!data || data.length === 0) {
                 $('#vungKetQuaTraCuu').html('<p class="text-center text-muted">Không tìm thấy kết quả.</p>');
                 return;
             }
+
             if (tuKhoa) {
                 data = data.filter(hs => {
                     const idStr = (hs.id || '').toString();
@@ -1224,6 +1258,7 @@
                            tenXaStr.includes(tuKhoa);
                 });
             }
+            // -----------------------------------------------------------
 
             allTraCuuData = data;
             currentTraCuuPage = 1;

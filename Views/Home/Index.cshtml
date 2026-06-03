@@ -14,9 +14,9 @@
         {
             displayModules.Add(new HeThongQuanLyVanPhong.DTOs.TaiKhoan.ModuleDashboardDto
             {
-                TenModule = "Đo đạc", 
-                Url = "/DoDac",                         
-                IconClass = "bi-map-fill"               
+                TenModule = "Đo đạc",
+                Url = "/DoDac",
+                IconClass = "bi-map-fill"
             });
         }
     }
@@ -143,9 +143,10 @@
                 $(this).removeClass('border-danger border-2 text-danger shadow');
             }
         });
+
         $(document).on('click', '.module-link', function (e) {
-            e.preventDefault(); 
-            const url = $(this).data('url'); 
+            e.preventDefault();
+            const url = $(this).data('url');
             const idTinhDuocChon = parseInt($cboTenTinh.val()) || 0;
             if (SERVER_TINH_ID === 0 && idTinhDuocChon === 0) {
                 alert('Vui lòng lựa chọn "Đơn vị hành chính tỉnh" trước khi truy cập chức năng!');
@@ -162,7 +163,7 @@
                 $(this).css('opacity', '0.5');
 
                 $.ajax({
-                    url: '/api/Auth/set-tinh', 
+                    url: '/api/Auth/set-tinh',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({ idTinh: idTinhDuocChon }),
@@ -171,7 +172,7 @@
                     },
                     error: function (xhr, status, error) {
                         console.error("Lỗi đồng bộ Tỉnh:", error);
-                        alert('Không thể lưu thông tin Tỉnh. Vui lòng đảm bảo bạn đã chạy (Build) lại code C# ở Backend!');
+                        alert('Không thể lưu thông tin Tỉnh!');
                         $(this).css('opacity', '1');
                     }.bind(this)
                 });

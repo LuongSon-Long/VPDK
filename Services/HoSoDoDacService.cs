@@ -167,9 +167,9 @@ namespace HeThongQuanLyVanPhong.Services
                 throw new Exception($"Đơn vị công tác ID {donViId} không tồn tại.");
 
             var buocTiepNhan = await _context.QuyTrinhXuLyBuocQuyTrinhs
-    .Where(b => b.IdquyTrinhXuLy == dto.IDQuyTrinh)
-    .OrderByDescending(b => b.Guid == "TiepNhan")
-    .FirstOrDefaultAsync();
+                .Where(b => b.IdquyTrinhXuLy == dto.IDQuyTrinh)
+                .OrderByDescending(b => b.Guid == "TiepNhan")
+                .FirstOrDefaultAsync();
 
             var hoSo = new DangKyDoDac
             {
@@ -223,6 +223,9 @@ namespace HeThongQuanLyVanPhong.Services
             if (hoSo.MucDichDangKy != dto.MucDichDangKy) { hoSo.MucDichDangKy = dto.MucDichDangKy; hasChange = true; }
             if (hoSo.GhiChu != dto.GhiChu) { hoSo.GhiChu = dto.GhiChu; hasChange = true; }
             if (hoSo.IdtaiKhoanDo != dto.IDTaiKhoanDo) { hoSo.IdtaiKhoanDo = dto.IDTaiKhoanDo; hasChange = true; }
+
+            if (hoSo.Idtinh != dto.IdTinh) { hoSo.Idtinh = dto.IdTinh; hasChange = true; }
+            if (hoSo.Idxa != dto.IdXa) { hoSo.Idxa = dto.IdXa; hasChange = true; }
 
             var ngayDo = ParseDateOnly(dto.NgayDoStr);
             if (hoSo.NgayDo != ngayDo) { hoSo.NgayDo = ngayDo; hasChange = true; }

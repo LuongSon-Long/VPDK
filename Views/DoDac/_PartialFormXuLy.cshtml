@@ -2,6 +2,21 @@
     // Partial này không nhận model - tất cả data load từ API qua JS
 }
 
+<style>
+    #fxl_Content .form-control:disabled,
+    #fxl_Content .form-control[readonly],
+    #fxl_Content .form-select:disabled,
+    #fxl_Content .form-select[readonly],
+    #fxl_Content textarea.form-control:disabled,
+    #fxl_Content textarea.form-control[readonly] {
+        border: 2px solid #dc3545 !important;
+        opacity: 1 !important;
+    }
+    #fxl_Content .is-filled {
+        background-color: #e2e3e5 !important;
+        color: #000 !important;
+    }
+</style>
 <div class="container-fluid p-2">
     <div id="fxl_Loading" class="text-center py-4">
         <div class="spinner-border text-primary"></div>
@@ -15,7 +30,6 @@
         <input type="hidden" id="fxl_IDBuocQuyTrinh" />
         <input type="hidden" id="fxl_GuidStep" />
 
-        <!-- 1. THÔNG TIN ĐĂNG KÝ -->
         <div class="card mb-3 border-light shadow-sm">
             <div class="card-header bg-primary text-white py-1 small fw-bold">
                 <i class="bi bi-person-lines-fill"></i> 1. THÔNG TIN ĐĂNG KÝ
@@ -39,13 +53,17 @@
                         <input type="text" class="form-control form-control-sm" id="fxl_DiaChiThuaDat" />
                     </div>
                     <div class="col-md-3">
-                        <label class="small fw-bold">Tỉnh/Thành:</label>
-                        <input type="text" class="form-control form-control-sm bg-light" id="fxl_TenTinh" readonly />
+                        <label class="small fw-bold">Xã/phường:</label>
+                        <select id="fxl_IDXa" class="form-select form-select-sm" style="width: 100%;">
+                            <option value="">-- Chọn Xã --</option>
+                        </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="small fw-bold">Xã/phường:</label>
-                        <input type="text" class="form-control form-control-sm bg-light" id="fxl_TenXa" readonly />
-                    </div>
+                        <label class="small fw-bold">Tỉnh/Thành:</label>
+                        <select id="fxl_IDTinh" class="form-select form-select-sm" style="width: 100%;">
+                            <option value="">Đang tải...</option>
+                        </select>
+                    </div>     
                     <div class="col-md-6">
                         <label class="small fw-bold">Số phát hành GCN:</label>
                         <input type="text" class="form-control form-control-sm" id="fxl_SeriGCN" />
@@ -66,7 +84,6 @@
             </div>
         </div>
 
-        <!-- 2. THÔNG TIN XỬ LÝ -->
         <div class="card mb-3 border-light shadow-sm">
             <div class="card-header bg-success text-white py-1 small fw-bold">
                 <i class="bi bi-file-earmark-medical"></i> 2. THÔNG TIN XỬ LÝ
@@ -88,7 +105,7 @@
                                id="fxl_NgayYeuCau" placeholder="dd/MM/yyyy" />
                     </div>
                     <div class="col-md-3">
-                        <label class="small fw-bold text-danger">Ngày đo:</label>
+                        <label class="small fw-bold text-danger">Ngày đo/Kiểm tra:</label>
                         <input type="text" class="form-control form-control-sm"
                                id="fxl_NgayDo" placeholder="dd/MM/yyyy" />
                     </div>
@@ -113,7 +130,6 @@
             </div>
         </div>
 
-        <!-- 3. XỬ LÝ HỒ SƠ -->
         <div class="card border-danger shadow-sm mb-3">
             <div class="card-header bg-danger text-white py-1 small fw-bold">
                 <i class="bi bi-diagram-3-fill"></i> 3. XỬ LÝ HỒ SƠ
@@ -123,7 +139,6 @@
             </div>
         </div>
 
-        <!-- Footer -->
         <div class="d-flex justify-content-between mt-2 pt-2 border-top">
             <div id="fxl_LeftButtons"></div>
             <div class="d-flex gap-2">
@@ -136,7 +151,6 @@
     </div>
 </div>
 
-<!-- Modal chọn người nhận -->
 <div class="modal fade" id="fxl_modalChonNguoiNhan" tabindex="-1"
      data-bs-backdrop="static" style="z-index:1070;">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -183,7 +197,6 @@
     </div>
 </div>
 
-<!-- Modal lưu trữ -->
 <div class="modal fade" id="fxl_modalNhapLuuTru" tabindex="-1"
      style="z-index:1070;">
     <div class="modal-dialog modal-dialog-centered">
@@ -235,13 +248,29 @@
     // ============================================================
     var fxl_IdBuocTiepTheo = 0;
     var fxl_TenBuocChuyen = '';
-
-    // Lấy thông tin tài khoản đang đăng nhập từ Session
     const fxl_SessionDonViName = '@Html.Raw(Context.Session.GetString("DonViCongTac")?.Trim() ?? "")';
     let fxl_SessionDonViId = parseInt('@Context.Session.GetInt32("IdDonViCongTac")') || 0;
-    let fxl_MyResolvedDonViId = 0; // Biến lưu ID thực tế sau khi dò tìm
+    let fxl_MyResolvedDonViId = 0; 
 
-    // Hàm phụ trợ: Tự động tìm ID Đơn vị công tác của tài khoản
+    function fxl_ApplyFilledStyle() {
+        $('#fxl_Content .form-control, #fxl_Content .form-select').each(function () {
+            var el = $(this);
+            if (el.is(':button, :submit, [type="hidden"]')) return;
+            var val = el.val();
+            if (val && val.toString().trim() !== '' && val !== '0') {
+                el.addClass('is-filled');
+            } else {
+                el.removeClass('is-filled');
+            }
+        });
+    }
+
+    $(document).ready(function () {
+        $(document).on('input change', '#fxl_Content .form-control, #fxl_Content .form-select', function () {
+            fxl_ApplyFilledStyle();
+        });
+    });
+
     async function fxl_ResolveMyDonViId() {
         if (fxl_MyResolvedDonViId > 0) return fxl_MyResolvedDonViId;
         if (fxl_SessionDonViId > 0) {
@@ -257,6 +286,57 @@
             } catch (e) { }
         }
         return fxl_MyResolvedDonViId;
+    }
+
+    function fxl_LockIfHasValue(selector) {
+        const el = $(selector);
+        if (el.val() && el.val().trim() !== '') {
+            el.prop('readonly', true); // Khóa input text/date
+            el.addClass('bg-light');   // Thêm màu xám để dễ nhận diện
+        }
+    }
+
+    // ============================================================
+    // HÀM TẢI TỈNH / XÃ VÀO COMBOBOX
+    // ============================================================
+    async function fxl_LoadTinhDropdown(selectedId) {
+        try {
+            const data = await apiGet('/api/dodac/dropdown/all-tinh');
+            let opts = '<option value="">-- Chọn Tỉnh --</option>';
+            (data || []).forEach(t => {
+                opts += `<option value="${t.id}">${t.ten}</option>`;
+            });
+            $('#fxl_IDTinh').html(opts);
+            if (selectedId) $('#fxl_IDTinh').val(selectedId);
+            if ($.fn.select2) {
+                $('#fxl_IDTinh').select2({ theme: 'bootstrap-5', width: '100%', dropdownParent: $('#modalXuLy') });
+            }
+        } catch (e) {
+            $('#fxl_IDTinh').html('<option value="">-- Lỗi tải --</option>');
+        }
+    }
+
+    async function fxl_LoadXaDropdown(idTinh, selectedId) {
+        if (!idTinh) {
+            $('#fxl_IDXa').html('<option value="">-- Chọn Xã --</option>');
+            return;
+        }
+        $('#fxl_IDXa').html('<option value="">Đang tải...</option>');
+        try {
+            const data = await apiGet(`/api/dodac/dropdown/xa-by-tinh/${idTinh}`);
+            let opts = '<option value="">-- Chọn Xã --</option>';
+            (data || []).forEach(x => {
+                opts += `<option value="${x.id}">${x.tenXa}</option>`;
+            });
+            $('#fxl_IDXa').html(opts);
+            if (selectedId) $('#fxl_IDXa').val(selectedId);
+
+            if ($.fn.select2) {
+                $('#fxl_IDXa').select2({ theme: 'bootstrap-5', width: '100%', dropdownParent: $('#modalXuLy') });
+            }
+        } catch (e) {
+            $('#fxl_IDXa').html('<option value="">-- Lỗi tải --</option>');
+        }
     }
 
     // ============================================================
@@ -285,12 +365,24 @@
             $('#fxl_CCCD').val(hoSo.cccd || '');
             $('#fxl_SoDienThoai').val(hoSo.soDienThoai || '');
             $('#fxl_DiaChiThuaDat').val(hoSo.diaChiThuaDat || '');
-            $('#fxl_TenTinh').val(hoSo.tenTinh || '');
-            $('#fxl_TenXa').val(hoSo.tenXa || '');
             $('#fxl_SeriGCN').val(hoSo.seriGCN || '');
             $('#fxl_MucDichDangKy').val(hoSo.mucDichDangKy || '');
             $('#fxl_SoHopDong').val(hoSo.soHopDong || '');
             $('#fxl_NgayHopDong').val(hoSo.ngayHopDong || '');
+
+            // Load dữ liệu Tỉnh / Xã chuẩn xác vào Combobox
+            const hIdTinh = hoSo.idTinh || hoSo.idtinh || hoSo.iDTinh;
+            const hIdXa = hoSo.idXa || hoSo.idxa || hoSo.iDXa;
+
+            await fxl_LoadTinhDropdown(hIdTinh);
+            if (hIdTinh) {
+                await fxl_LoadXaDropdown(hIdTinh, hIdXa);
+            }
+
+            // Gắn sự kiện khi đổi Tỉnh thì load lại Xã
+            $('#fxl_IDTinh').off('change').on('change', function () {
+                fxl_LoadXaDropdown($(this).val(), null);
+            });
 
             // Gán thông tin xử lý
             $('#fxl_SoPhieuGiao').val(hoSo.soPhieuGiao || '');
@@ -299,7 +391,7 @@
             $('#fxl_NgayDo').val(hoSo.ngayDo ? formatDisplayDate(hoSo.ngayDo) : '');
             $('#fxl_GhiChu').val(hoSo.ghiChu || '');
 
-            // [ĐÃ SỬA]: Load nhân viên theo ĐƠN VỊ CỦA TÀI KHOẢN thay vì đơn vị của Hồ Sơ
+            // Load nhân viên theo ĐƠN VỊ CỦA TÀI KHOẢN thay vì đơn vị của Hồ Sơ
             const myDonViId = await fxl_ResolveMyDonViId();
             const targetDonViForNhanVien = myDonViId > 0 ? myDonViId : hoSo.idDonViCongTac;
             await fxl_loadNhanVien(targetDonViForNhanVien, hoSo.idTaiKhoanDo);
@@ -320,9 +412,14 @@
 
             // Load quy trình → render nút chuyển bước
             await fxl_loadQuyTrinh(hoSo.idQuyTrinh, hoSo.idBuocQuyTrinh, hoSo.trangThaiDo);
-
+            fxl_ApplyFilledStyle();
             $('#fxl_Loading').hide();
             $('#fxl_Content').show();
+            $(document).ready(function () {
+                $(':disabled, [readonly]').each(function () {
+                    $(this).css('border', '2px solid #dc3545 !important');
+                });
+            });
 
         } catch (e) {
             $('#fxl_Loading').html(
@@ -382,9 +479,9 @@
                 let btns = '<label class="small fw-bold d-block mb-2 text-muted">Thực hiện chuyển tiếp hồ sơ:</label>';
                 nhayBuocCuaBuocNay.forEach(n => {
                     btns += `<button type="button" class="btn btn-outline-danger btn-sm px-3 m-1 shadow-sm"
-                                    onclick="fxl_openChonNguoiNhan(${n.idBuocTiepTheo}, '${(n.tenBuocChuyen || '').replace(/'/g, "\\'")}')">
-                                    <i class="bi bi-arrow-right-circle"></i> ${n.tenBuocChuyen}
-                                 </button>`;
+                                            onclick="fxl_openChonNguoiNhan(${n.idBuocTiepTheo}, '${(n.tenBuocChuyen || '').replace(/'/g, "\\'")}')">
+                                            <i class="bi bi-arrow-right-circle"></i> ${n.tenBuocChuyen}
+                                         </button>`;
                 });
                 container.html(btns);
             }
@@ -393,10 +490,10 @@
             const tenBuoc = (buocHT?.tenBuocQt || '').toLowerCase();
             if (tenBuoc.includes('lưu trữ') || tenBuoc.includes('luu tru')) {
                 leftDiv.html(`<button class="btn btn-warning btn-sm fw-bold" onclick="fxl_thucThiLuuTru()">
-                        <i class="bi bi-archive"></i> LƯU TRỮ</button>`);
+                                <i class="bi bi-archive"></i> LƯU TRỮ</button>`);
             } else if (tenBuoc.includes('bàn giao') || tenBuoc.includes('kết quả') || tenBuoc.includes('ket qua')) {
                 leftDiv.html(`<button class="btn btn-danger btn-sm fw-bold" onclick="fxl_thucThiTraKQ()">
-                        <i class="bi bi-check2-circle"></i> TRẢ KẾT QUẢ</button>`);
+                                <i class="bi bi-check2-circle"></i> TRẢ KẾT QUẢ</button>`);
             }
 
         } catch (e) {
@@ -412,6 +509,10 @@
         const btn = $('button[onclick="fxl_Save()"]');
         btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
 
+        // Lấy giá trị của Select
+        const idTinhVal = parseInt($('#fxl_IDTinh').val()) || null;
+        const idXaVal = parseInt($('#fxl_IDXa').val()) || null;
+
         const body = {
             id,
             soPhieuGiao: $('#fxl_SoPhieuGiao').val(),
@@ -419,6 +520,16 @@
             cccd: $('#fxl_CCCD').val(),
             soDienThoai: $('#fxl_SoDienThoai').val(),
             diaChiThuaDat: $('#fxl_DiaChiThuaDat').val(),
+
+            // Để chắc chắn Backend nhận được, truyền vào nhiều key format khác nhau
+            idTinh: idTinhVal,
+            idtinh: idTinhVal,
+            iDTinh: idTinhVal,
+
+            idXa: idXaVal,
+            idxa: idXaVal,
+            iDXa: idXaVal,
+
             seriGCN: $('#fxl_SeriGCN').val(),
             mucDichDangKy: $('#fxl_MucDichDangKy').val(),
             ngayGiaoStr: $('#fxl_NgayGiao').val(),
@@ -438,7 +549,6 @@
             const json = await res.json();
             if (json.success) {
                 alert('Đã cập nhật thông tin thành công!');
-                
                 renderDanhSachHoSo();
             } else {
                 alert('Lỗi: ' + (json.message || 'Không xác định'));
@@ -490,7 +600,6 @@
             });
             $('#fxl_cboDonViKhac').html(opts);
 
-            // [ĐÃ SỬA]: Pre-select ĐƠN VỊ TÀI KHOẢN thay vì đơn vị hồ sơ
             const myDonViId = await fxl_ResolveMyDonViId();
             const targetDonViId = myDonViId > 0 ? myDonViId : $('#fxl_IDDonViCongTac').val();
 
@@ -516,7 +625,6 @@
             });
         } else {
             $cbo.prop('disabled', true);
-            // [ĐÃ SỬA]: Trả về đơn vị tài khoản khi tắt nút toggle
             const myDonViId = await fxl_ResolveMyDonViId();
             const targetDonViId = myDonViId > 0 ? myDonViId : $('#fxl_IDDonViCongTac').val();
             $cbo.val(targetDonViId);
@@ -535,17 +643,17 @@
                 return;
             }
             tbody.html(data.map((item, i) => `
-                    <tr>
-                        <td class="text-center">${i + 1}</td>
-                        <td>${item.ten}</td>
-                        <td class="text-muted small">—</td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-primary"
-                                onclick="fxl_thucThiChuyen(${item.id}, '${(item.ten || '').replace(/'/g, "\\'")}')">
-                                Chọn
-                            </button>
-                        </td>
-                    </tr>`).join(''));
+                            <tr>
+                                <td class="text-center">${i + 1}</td>
+                                <td>${item.ten}</td>
+                                <td class="text-muted small">—</td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-primary"
+                                        onclick="fxl_thucThiChuyen(${item.id}, '${(item.ten || '').replace(/'/g, "\\'")}')">
+                                        Chọn
+                                    </button>
+                                </td>
+                            </tr>`).join(''));
         } catch (e) {
             tbody.html(`<tr><td colspan="4" class="text-danger text-center small">Lỗi: ${e.message}</td></tr>`);
         }

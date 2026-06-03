@@ -168,53 +168,53 @@ namespace HeThongQuanLyVanPhong.Services
         public async Task<List<object>> GetDanhSachChiTietAsync(BaoCaoRequestDto request, string? trangThai, int? idNhanVien)
         {
             var query = _context.DangKyDoDacs
-                .Include(x => x.IdtaiKhoanDoNavigation)     
-                .Include(x => x.IdtaiKhoanNavigation)       
+                .Include(x => x.IdtaiKhoanDoNavigation)
+                .Include(x => x.IdtaiKhoanNavigation)
                 .Include(x => x.IddonViCongTacNavigation)
                 .Include(x => x.IdxaNavigation)
                 .Include(x => x.DangKyDoDacBanVes)
                 .AsQueryable();
 
-            // 2. Lọc theo các điều kiện cơ bản
+            if (request.IdTinh.HasValue)
+            {
+                query = query.Where(x => x.Idtinh == request.IdTinh.Value);
+            }
+
+            if (request.IdDonVi.HasValue && request.IdDonVi.Value > 0)
+            {
+                query = query.Where(x => x.IddonViCongTac == request.IdDonVi.Value);
+            }
+
             if (idNhanVien.HasValue && idNhanVien > 0)
                 query = query.Where(x => x.IdtaiKhoanDo == idNhanVien);
             else
             {
-                if (request.IdDonVi.HasValue)
-                    query = query.Where(x => x.IddonViCongTac == request.IdDonVi);
                 if (!string.IsNullOrEmpty(trangThai))
                     query = query.Where(x => x.TrangThaiDo == trangThai);
             }
 
-            // 3. Lọc theo Tên chủ sử dụng đất (Bản vẽ)
             if (!string.IsNullOrWhiteSpace(request.TenChuSD))
             {
                 string tuKhoaChuSD = request.TenChuSD.Trim();
-                // Dùng Any với điều kiện kiểm tra null an toàn
                 query = query.Where(x => x.DangKyDoDacBanVes.Any(bv =>
                     bv.TenCsd != null && EF.Functions.Like(bv.TenCsd, "%" + tuKhoaChuSD + "%")));
             }
 
-            // 4. Lấy dữ liệu về bộ nhớ
             var dataRaw = await query.ToListAsync();
             Console.WriteLine("Tổng hồ sơ tìm được: " + dataRaw.Count);
             foreach (var item in dataRaw)
             {
                 Console.WriteLine($"HoSo ID: {item.Id}, SoHopDong: {item.SoHopDong}, So luong BanVe: {item.DangKyDoDacBanVes?.Count ?? 0}");
             }
-            // 5. Xử lý lọc ngày tháng phía Client một cách an toàn
+
             DateTime dTu = DateTime.ParseExact(request.TuNgay!, "dd/MM/yyyy", null).Date;
             DateTime dDen = DateTime.ParseExact(request.DenNgay!, "dd/MM/yyyy", null).Date;
 
             var list = dataRaw.Where(x =>
             {
-                // 1. LUÔN LUÔN ƯU TIÊN KẾT QUẢ TÌM KIẾM ĐẶC BIỆT
                 if (!string.IsNullOrWhiteSpace(request.TenChuSD)) return true;
-
-                // 2. NẾU KHÔNG CÓ TÌM KIẾM ĐẶC BIỆT, MỚI LỌC THEO NGÀY
                 if (string.IsNullOrWhiteSpace(x.NgayHopDong)) return false;
 
-                // Sử dụng DateTime.TryParse để tránh crash khi định dạng ngày khác nhau
                 if (DateTime.TryParseExact(x.NgayHopDong, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out DateTime d))
                 {
                     return d.Date >= dTu.Date && d.Date <= dDen.Date;

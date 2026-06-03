@@ -65,6 +65,8 @@
         public string? NgayYeuCauStr { get; set; }
         public string? GhiChu { get; set; }
         public int? IDTaiKhoanDo { get; set; }
+        public int? IdTinh { get; set; }
+        public int? IdXa { get; set; }
     }
 
     public class ChuyenBuocDto
