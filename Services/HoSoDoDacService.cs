@@ -227,6 +227,9 @@ namespace HeThongQuanLyVanPhong.Services
             if (hoSo.Idtinh != dto.IdTinh) { hoSo.Idtinh = dto.IdTinh; hasChange = true; }
             if (hoSo.Idxa != dto.IdXa) { hoSo.Idxa = dto.IdXa; hasChange = true; }
 
+            if (hoSo.SoHopDong != dto.SoHopDong) { hoSo.SoHopDong = dto.SoHopDong; hasChange = true; }
+            if (hoSo.NgayHopDong != dto.NgayHopDong) { hoSo.NgayHopDong = dto.NgayHopDong; hasChange = true; }
+
             var ngayDo = ParseDateOnly(dto.NgayDoStr);
             if (hoSo.NgayDo != ngayDo) { hoSo.NgayDo = ngayDo; hasChange = true; }
             var ngayGiao = ParseDateOnly(dto.NgayGiaoStr);

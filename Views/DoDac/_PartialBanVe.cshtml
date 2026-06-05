@@ -1,6 +1,17 @@
 ﻿@* Views/DoDac/_PartialBanVe.cshtml *@
 @* Không cần @model — toàn bộ dữ liệu lấy qua API *@
-
+<style>
+    #vungBanVe .form-control[readonly],
+    #vungBanVe .form-control:disabled,
+    #vungBanVe .form-select:disabled {
+        border: 2px solid #dc3545 !important;
+        opacity: 1 !important;
+    }
+    .is-filled {
+        background-color: #e2e3e5 !important;
+        color: #000 !important;
+    }
+</style>
 <div class="row h-100" id="vungBanVe">
 
     @* ── CỘT TRÁI: DANH SÁCH BẢN VẼ ─────────────────────────── *@
@@ -686,6 +697,7 @@
             } else {
                 bv2_ApDungQuyen();
             }
+            bv2_ApplyFormStyles();
         } catch (e) {
             alert('Lỗi tải chi tiết bản vẽ: ' + e.message);
         }
@@ -721,7 +733,7 @@
         $('#bv2_FormWrapper input, #bv2_FormWrapper select, #bv2_FormWrapper textarea')
             .prop('disabled', false);
         bv2_ApDungQuyen();
-
+        bv2_ApplyFormStyles();
         $('#bv2_TenCSD').focus();
     }
 
@@ -971,8 +983,6 @@
         const soHieu = $('#bv2_SoHieuBanVe').val() || '?';
         const toThua = ($('#bv2_ToBD').val() || '?') + "/" + ($('#bv2_SoHieuThua').val() || '?');
         const labelBanVe = `Tờ/Thửa: ${toThua} (Số BV: ${soHieu})`;
-
-        // Gọi hàm chung ở Index.cshtml
         if (typeof themVaoKhay === "function") {
             themVaoKhay('banve', idBanVe, labelBanVe);
             alert('Đã đưa bản vẽ vào khay!');
@@ -982,4 +992,24 @@
     function bv2_ClearTien() {
         $('#dg2_SoTien, #dg2_ChiPhiLaoDong, #dg2_TienLamTron').val('');
     }
+
+    function bv2_ApplyFormStyles() {
+        $('#vungBanVe .form-control, #vungBanVe .form-select').each(function () {
+            var el = $(this);
+            var val = el.val();
+            if (val && val.toString().trim() !== '' && val !== '0') {
+                el.addClass('is-filled');
+            } else {
+                el.removeClass('is-filled');
+            }
+        });
+        $('#vungBanVe .form-control[readonly], #vungBanVe .form-control:disabled, #vungBanVe .form-select:disabled')
+            .addClass('border-error-readonly');
+    }
+
+    $(document).on('input change', '#vungBanVe .form-control, #vungBanVe .form-select', function () {
+        bv2_ApplyFormStyles();
+    });
+
+    setInterval(bv2_ApplyFormStyles, 500);
 </script>

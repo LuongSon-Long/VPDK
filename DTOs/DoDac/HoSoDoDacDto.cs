@@ -67,6 +67,8 @@
         public int? IDTaiKhoanDo { get; set; }
         public int? IdTinh { get; set; }
         public int? IdXa { get; set; }
+        public string? SoHopDong { get; set; }
+        public string? NgayHopDong { get; set; }
     }
 
     public class ChuyenBuocDto

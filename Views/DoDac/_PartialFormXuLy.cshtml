@@ -41,7 +41,7 @@
                         <input type="text" class="form-control form-control-sm" id="fxl_NguoiDangKy" />
                     </div>
                     <div class="col-md-3">
-                        <label class="small fw-bold">Số CC/CCCD/CMND:</label>
+                        <label class="small fw-bold">Số CC/CCCD/Mã số thuế:</label>
                         <input type="text" class="form-control form-control-sm" id="fxl_CCCD" />
                     </div>
                     <div class="col-md-3">
@@ -521,7 +521,9 @@
             soDienThoai: $('#fxl_SoDienThoai').val(),
             diaChiThuaDat: $('#fxl_DiaChiThuaDat').val(),
 
-            // Để chắc chắn Backend nhận được, truyền vào nhiều key format khác nhau
+            soHopDong: $('#fxl_SoHopDong').val(),
+            ngayHopDong: $('#fxl_NgayHopDong').val(),
+
             idTinh: idTinhVal,
             idtinh: idTinhVal,
             iDTinh: idTinhVal,
