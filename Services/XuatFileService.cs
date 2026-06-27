@@ -201,7 +201,7 @@ namespace HeThongQuanLyVanPhong.Services
                 worksheet.Cell(2, 1).Value = $"Thời gian: {request.TuNgay} đến {request.DenNgay}";
                 worksheet.Range(2, 1, 2, 11).Merge();
 
-                string[] headers = { "STT", "Số Hợp Đồng", "Chủ Sử Dụng", "Ngày đăng ký", "Địa chỉ thửa đất", "ĐVHC xã/phường", "Người giải quyết", "Ngày Yêu Cầu", "Ngày đo", "Ngày Trả kết quả", "Tình Trạng Hạn" };
+                string[] headers = { "STT", "Số Hợp Đồng", "Chủ Sử Dụng", "Ngày đăng ký", "Địa chỉ thửa đất", "ĐVHC xã/phường", "Người giải quyết", "Ngày Yêu Cầu", "Ngày đo", "Ngày Trả kết quả", "Tình Trạng Hạn(ngày đo và ngày yêu cầu)" };
                 for (int i = 0; i < headers.Length; i++)
                 {
                     var cell = worksheet.Cell(4, i + 1);
@@ -215,7 +215,7 @@ namespace HeThongQuanLyVanPhong.Services
                 foreach (var item in list)
                 {
                     DateTime nyc = item.NgayYeuCau.HasValue ? item.NgayYeuCau.Value.ToDateTime(TimeOnly.MinValue) : ngayHienTai;
-                    DateTime ntkq = item.NgayTraKetQua.HasValue ? item.NgayTraKetQua.Value.ToDateTime(TimeOnly.MinValue) : ngayHienTai;
+                    DateTime ntkq = item.NgayDo.HasValue ? item.NgayDo.Value.ToDateTime(TimeOnly.MinValue) : ngayHienTai;
                     bool laQuaHan = ntkq.Date > nyc.Date;
 
                     worksheet.Cell(row, 1).Value = row - 4;

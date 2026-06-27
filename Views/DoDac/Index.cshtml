@@ -49,6 +49,8 @@
 
                 <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
                    onclick="loadTask('BaoCao', this)">Tổng hợp, báo cáo</a>
+                <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
+                   onclick="moModalKhoLuuTru()"><i class="bi bi-list-ol me-2"></i>Kho lưu trữ</a>
                 @if (tenChucVu == "TiepNhan")
                 {
                     <a href="javascript:void(0)" class="list-group-item list-group-item-action py-3 text-success fw-bold border-top"
@@ -96,6 +98,17 @@
 </div>
 
 <!-- ===================== MODALS ===================== -->
+<div class="modal fade" id="modalKhoLuuTru" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title"><i class="bi bi-archive"></i> QUẢN LÝ KHO LƯU TRỮ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" id="modalKhoLuuTruContent"></div>
+        </div>
+    </div>
+</div>
 
 <div class="modal fade" id="modalXuLy" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg">
@@ -254,7 +267,7 @@
     <div class="modal-dialog">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title"><i class="bi bi-file-earmark-word-fill"></i> CHỌN TEMPLATE THANH LÝ</h5>
+                <h5 class="modal-title"><i class="bi bi-file-earmark-word-fill"></i> CHỌN TEMPLATE MẪU</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -433,8 +446,19 @@
     async function apiGet(url) {
         const res = await fetch(url);
         if (res.status === 401) { window.location.href = '/Account/Login'; return null; }
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
+        if (!res.ok) {
+            console.error("API Error:", res.status, url);
+            return null;
+        }
+        const text = await res.text();
+        // Kiểm tra text trống trước khi parse
+        if (!text || text.trim() === "") return [];
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error("JSON Error:", e, text);
+            return [];
+        }
     }
 
     async function apiPost(url, body) {
@@ -578,6 +602,9 @@
         try {
             const data = await apiGet(`/api/dodac/hosododac?onlyChuaKetThuc=${onlyChuaKetThuc}&role=${CURRENT_USER_ROLE}`);
             if (!data) return;
+            data.sort((a, b) => a.id - b.id); // sap xep theo so ID tang dan
+            //data.sort((a, b) => new Date(a.ngayDangKy) - new Date(b.ngayDangKy)); //sap xep theo ngay dang ky
+
             allHoSoData = data;
             renderBangHoSo(data);
         } catch (e) {
@@ -1070,7 +1097,7 @@
 
     async function loadSoHieuMax() {
         const idTinh = $('#sel_Tinh').val();
-        const nam    = $('#sel_Nam').val();
+        const nam = $('#sel_Nam').val();
         if (!idTinh) { alert('Vui lòng chọn Tỉnh!'); return; }
 
         const tbody = $('#tbodySoHieuMax');
@@ -1084,21 +1111,61 @@
                 tbody.html('<tr><td colspan="4" class="text-center text-muted">Không tìm thấy dữ liệu</td></tr>');
                 return;
             }
-            tbody.html(res.data.map(item => `
-                <tr>
-                    <td class="fw-bold">${item.maXa}</td>
-                    <td>${item.tenXa}</td>
-                    <td class="text-center">
-                        <span class="badge ${item.soHieuMax > 0 ? 'bg-danger' : 'bg-secondary'}">${item.soHieuMax}</span>
-                    </td>
-                    <td class="text-center">
-                        <button class="btn btn-outline-info btn-sm" onclick="xemChiTietSoHieu('${item.maXa}', '${item.tenXa}')">
-                            <i class="bi bi-eye"></i> Xem
-                        </button>
-                    </td>
-                </tr>`).join(''));
+
+            const isAdmin = CURRENT_USER_ROLE === 'Admin';
+
+            tbody.html(res.data.map(item => {
+                let htmlSoHieu = isAdmin
+                    ? `<input type="number" id="input_sh_${item.maXa}" class="form-control form-control-sm text-center fw-bold text-danger mx-auto" style="width: 100px;" value="${item.soHieuMax}">`
+                    : `<span class="badge ${item.soHieuMax > 0 ? 'bg-danger' : 'bg-secondary'}">${item.soHieuMax}</span>`;
+                let btnLuu = isAdmin
+                    ? `<button class="btn btn-outline-success btn-sm ms-1" onclick="luuSoHieuMax('${item.maXa}')" title="Lưu số hiệu">
+                               <i class="bi bi-save"></i> Lưu
+                           </button>`
+                    : '';
+
+                return `
+                    <tr>
+                        <td class="fw-bold align-middle">${item.maXa}</td>
+                        <td class="align-middle">${item.tenXa}</td>
+                        <td class="text-center align-middle">
+                            ${htmlSoHieu}
+                        </td>
+                        <td class="text-center align-middle">
+                            <button class="btn btn-outline-info btn-sm" onclick="xemChiTietSoHieu('${item.maXa}', '${item.tenXa}')">
+                                <i class="bi bi-eye"></i> Xem
+                            </button>
+                            ${btnLuu}
+                        </td>
+                    </tr>`;
+            }).join(''));
         } catch (e) {
             tbody.html('<tr><td colspan="4" class="text-center text-danger">Lỗi: ' + e.message + '</td></tr>');
+        }
+    }
+
+    // Hàm gọi API để lưu cập nhật số hiệu
+    async function luuSoHieuMax(maXa) {
+        const nam = parseInt($('#sel_Nam').val());
+        const soHieuMoi = parseInt($(`#input_sh_${maXa}`).val());
+
+        if (isNaN(soHieuMoi) || soHieuMoi < 0) {
+            alert("Số hiệu mới không hợp lệ!");
+            return;
+        }
+
+        if (!confirm(`Bạn có chắc muốn thiết lập lại số hiệu của xã này thành ${soHieuMoi} không?`)) return;
+
+        try {
+            const res = await apiPost('/api/dodac/somanh/update-max', { maXa, nam, soHieuMoi });
+            if (res && res.success) {
+                alert("Đã cập nhật số hiệu thành công!");
+                loadSoHieuMax(); // Tải lại bảng để cập nhật
+            } else {
+                alert("Lỗi: " + (res?.message || "Không xác định"));
+            }
+        } catch (e) {
+            alert("Lỗi kết nối: " + e.message);
         }
     }
 
@@ -1121,11 +1188,38 @@
                 <tr>
                     <td class="text-center fw-bold text-danger">${item.shBanVe ?? ''}</td>
                     <td>${item.tenCanBo ?? ''}</td>
-                    <td class="small">${item.ten ?? ''}</td>
+                    <td>${item.tenDonVi ?? ''}</td>
                     <td class="text-muted">${item.ngayLay ?? ''}</td>
+                    <td class="text-center">
+                        ${(CURRENT_USER_ROLE === 'Admin') ?
+                            `<button class="btn btn-outline-danger btn-sm"
+                                    onclick="xoaLichSuCapSo(${item.id}, '${maXa}', '${tenXa}')">
+                              <i class="bi bi-trash"></i>
+                           </button>` : ''
+                        }
+                    </td>
                 </tr>`).join(''));
         } catch (e) {
             tbody.html('<tr><td colspan="4" class="text-danger">Lỗi: ' + e.message + '</td></tr>');
+        }
+    }
+
+    async function xoaLichSuCapSo(id, maXa, tenXa) {
+        console.log("Đang xóa bản ghi có ID là:", id); 
+        if (!id) { alert("ID không hợp lệ!"); return; }
+        if (!confirm(`Bạn chắc chắn muốn xóa số hiệu này của xã ${tenXa}?`)) return;
+
+        try {
+            const res = await apiDelete(`/api/dodac/somanh/${id}`); 
+            if (res && res.success) {
+                alert("Đã xóa thành công!");                
+                xemChiTietSoHieu(maXa, tenXa);
+                loadSoHieuMax(); 
+            } else {
+                alert("Lỗi: " + (res?.message || "Không thể xóa"));
+            }
+        } catch (e) {
+            alert("Lỗi kết nối: " + e.message);
         }
     }
 
@@ -1289,39 +1383,45 @@
             return;
         }
 
-        const rows = paged.map((hs, i) => `
-            <tr>
-                <td>${(page - 1) * pageSize + i + 1}</td>
-                <td class="fw-bold text-primary text-nowrap">${hs.soHopDong || ''}</td>
-                <td>${hs.nguoiDangKy || ''}</td>
-                <td class="text-nowrap">${hs.ngayHopDong ? formatDisplayDate(hs.ngayHopDong) : ''}</td>
-                <td>${hs.diaChiThuaDat || ''}</td>
-                <td>${hs.tenXa || ''}</td>
-                <td>${hs.tenDonViCongTac || ''}</td>
+        const rows = paged.map((hs, i) => {
+            // Xác định trạng thái Khóa (ReadOnly):
+            // Nếu là Admin thì false (Mở khóa), ngược lại là true (Khóa)
+            const isReadOnly = (CURRENT_USER_ROLE !== 'Admin');
 
-                <td>
-                    <span class="badge bg-secondary">${hs.trangThaiDo || 'Chưa xác định'}</span>
-                    <div class="small text-muted mt-1 text-nowrap">
-                        <i class="bi bi-person-badge"></i>Đang xử lý: ${hs.tenNguoiXuLy || '---'}
-                    </div>
-                </td>
+            return `
+                <tr>
+                    <td>${(page - 1) * pageSize + i + 1}</td>
+                    <td class="fw-bold text-primary text-nowrap">${hs.soHopDong || ''}</td>
+                    <td>${hs.nguoiDangKy || ''}</td>
+                    <td class="text-nowrap">${hs.ngayHopDong ? formatDisplayDate(hs.ngayHopDong) : ''}</td>
+                    <td>${hs.diaChiThuaDat || ''}</td>
+                    <td>${hs.tenXa || ''}</td>
+                    <td>${hs.tenDonViCongTac || ''}</td>
 
-                <td class="small">${hs.tenNguoiDo || '---'}</td>
+                    <td>
+                        <span class="badge bg-secondary">${hs.trangThaiDo || 'Chưa xác định'}</span>
+                        <div class="small text-muted mt-1 text-nowrap">
+                            <i class="bi bi-person-badge"></i>Đang xử lý: ${hs.tenNguoiXuLy || '---'}
+                        </div>
+                    </td>
 
-                <td class="text-nowrap">${hs.ngayYeuCau ? formatDisplayDate(hs.ngayYeuCau) : ''}</td>
-                <td class="text-nowrap">${hs.ngayDo ? formatDisplayDate(hs.ngayDo) : ''}</td>
-                <td class="text-nowrap">${hs.ngayTraKetQua ? formatDisplayDate(hs.ngayTraKetQua) : ''}</td>
+                    <td class="small">${hs.tenNguoiDo || '---'}</td>
 
-                <td class="text-center text-nowrap">
-                    <button class="btn btn-sm btn-outline-success" onclick="openXuLy(${hs.id}, true)" title="Mở đăng ký">
-                        <i class="bi bi-map"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-success" onclick="openBanVeModal(${hs.id})" title="Mở bản vẽ">
-                        <i class="bi bi-map"></i>
-                    </button>
-                </td>
-                    
-            </tr>`).join('');
+                    <td class="text-nowrap">${hs.ngayYeuCau ? formatDisplayDate(hs.ngayYeuCau) : ''}</td>
+                    <td class="text-nowrap">${hs.ngayDo ? formatDisplayDate(hs.ngayDo) : ''}</td>
+                    <td class="text-nowrap">${hs.ngayTraKetQua ? formatDisplayDate(hs.ngayTraKetQua) : ''}</td>
+
+                    <td class="text-center text-nowrap">
+                        <button class="btn btn-sm btn-outline-primary" onclick="openXuLy(${hs.id}, ${isReadOnly})" title="Xử lý hồ sơ">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="openBanVeModal(${hs.id})" title="Mở bản vẽ">
+                            <i class="bi bi-map"></i>
+                        </button>
+                    </td>
+
+                </tr>`;
+            }).join('');
 
         // ── Phân trang ──────────────────────────────────────────────
         let pagination = '';
@@ -1637,7 +1737,27 @@
             console.error('Lỗi load đơn vị:', e);
         }
     }
+    async function moModalKhoLuuTru() {
+        $('#modalKhoLuuTru').modal('show');
+        $('#modalKhoLuuTruContent').html(`
+                <div class="p-5 text-center">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2">Đang tải...</p>
+                </div>`);
+        try {
+            const res = await fetch('/DoDac/FormKhoLuuTru');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            $('#modalKhoLuuTruContent').html(await res.text());
 
+            // Gọi hàm khởi tạo bên trong Partial
+            if (typeof klt_Init === "function") {
+                klt_Init();
+            }
+        } catch (e) {
+            $('#modalKhoLuuTruContent').html(
+                `<div class="alert alert-danger m-3">Lỗi tải form kho lưu trữ: ${e.message}</div>`);
+        }
+    }
     async function thucHienXuatExcelDSBanVe() {
         const idTinh = $('#xuat_IDTinh').val();
         const idDonVi = $('#xuat_IDDonVi').val();

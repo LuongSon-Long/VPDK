@@ -26,6 +26,10 @@ namespace HeThongQuanLyVanPhong.Controllers.View
         {
             return PartialView("~/Views/DoDac/_PartialBanVe.cshtml");
         }
+        public IActionResult FormKhoLuuTru()
+        {
+            return PartialView("_PartialKhoLuuTru");
+        }
     }
 
 }

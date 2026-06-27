@@ -62,5 +62,41 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
             var result = await _luuTruService.GetLuuTruByHoSoIdAsync(idDangKyDoDac);
             return Ok(result);
         }
+        // GET: api/dodac/luutru/all
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAll([FromQuery] string? search)
+        {
+            var result = await _luuTruService.GetAllLuuTruAsync(search);
+            return Ok(result);
+        }
+
+        // DELETE: api/dodac/luutru/{id}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            // Kiểm tra phân quyền nếu cần (Ví dụ: chỉ Admin mới được xóa)
+            // var chucVu = HttpContext.Session.GetString("ChucVu");
+            // if (chucVu != "Admin") return Forbid();
+
+            var result = await _luuTruService.DeleteLuuTruAsync(id);
+            if (result) return Ok(new { success = true });
+
+            return BadRequest(new { success = false, message = "Không tìm thấy dữ liệu hoặc không thể xóa" });
+        }
+        // GET: api/dodac/luutru/ngan-list?kho=...&gia=...
+        [HttpGet("ngan-list")]
+        public async Task<IActionResult> GetNganList([FromQuery] string kho, [FromQuery] string gia)
+        {
+            var result = await _luuTruService.GetNganByKhoGiaAsync(kho, gia);
+            return Ok(result);
+        }
+
+        // GET: api/dodac/luutru/find?kho=...&gia=...&ngan=...
+        [HttpGet("find")]
+        public async Task<IActionResult> FindLuuTru(string kho, string gia, string ngan)
+        {
+            var list = await _luuTruService.FindLuuTruAsync(kho, gia, ngan);
+            return Ok(list); // Trả về list DTO đã có tên
+        }
     }
 }

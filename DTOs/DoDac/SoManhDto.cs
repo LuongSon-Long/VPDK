@@ -19,6 +19,7 @@
 
     public class LichSuCapSoDto
     {
+        public int Id { get; set; }
         public int? SHBanVe { get; set; }
         public string? NgayLay { get; set; }
         public string? TenCanBo { get; set; }

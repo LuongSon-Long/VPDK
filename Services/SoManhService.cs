@@ -75,6 +75,38 @@ namespace HeThongQuanLyVanPhong.Services
             }
         }
 
+        public async Task<dynamic> UpdateSoHieuMaxAsync(UpdateSoHieuMaxDto request, int currentUserId, int currentDonViId)
+        {
+            try
+            {
+                var exists = await _context.DangKyDoDacSoManhTds
+                    .AnyAsync(x => x.MaXa == request.MaXa && x.Nam == request.Nam && x.ShbanVe == request.SoHieuMoi);
+
+                if (exists)
+                {
+                    return new { success = false, message = $"Số hiệu {request.SoHieuMoi} đã tồn tại trong năm {request.Nam} của xã này!" };
+                }
+
+                var newRecord = new DangKyDoDacSoManhTd
+                {
+                    MaXa = request.MaXa,
+                    Nam = request.Nam,
+                    ShbanVe = request.SoHieuMoi,
+                    IdtaiKhoan = currentUserId,
+                    IddonViCongTac = currentDonViId == 0 ? null : currentDonViId,
+                    NgayLay = DateTime.Now
+                };
+
+                _context.DangKyDoDacSoManhTds.Add(newRecord);
+                await _context.SaveChangesAsync();
+
+                return new { success = true };
+            }
+            catch (Exception)
+            {
+                return new { success = false, message = "Lỗi hệ thống khi thiết lập số hiệu." };
+            }
+        }
         public async Task<List<LichSuCapSoDto>> GetLichSuCapSoAsync(string maXa, int nam)
         {
             if (string.IsNullOrEmpty(maXa))
@@ -84,13 +116,33 @@ namespace HeThongQuanLyVanPhong.Services
 
             return list.Select(x => new LichSuCapSoDto
             {
+                Id = x.Id,
                 SHBanVe = x.ShbanVe,
                 NgayLay = x.NgayLay.HasValue ? x.NgayLay.Value.ToString("dd/MM/yyyy HH:mm") : "",
                 TenCanBo = _context.TaiKhoans.Where(u => u.Id == x.IdtaiKhoan).Select(u => u.HoVaTen).FirstOrDefault() ?? "N/A",
                 TenDonVi = _context.DonViCongTacs.Where(d => d.Id == x.IddonViCongTac).Select(d => d.TenDonVi).FirstOrDefault() ?? "N/A"
             }).ToList();
         }
+        public async Task<dynamic> DeleteSoHieuAsync(int id)
+        {
+            try
+            {
+                var record = await _context.DangKyDoDacSoManhTds.FirstOrDefaultAsync(x => x.Id == id);
 
+                if (record == null)
+                {
+                    return new { success = false, message = $"Không tìm thấy bản ghi với ID = {id}" };
+                }
+
+                _context.DangKyDoDacSoManhTds.Remove(record);
+                await _context.SaveChangesAsync();
+                return new { success = true };
+            }
+            catch (Exception ex)
+            {
+                return new { success = false, message = "Lỗi hệ thống: " + ex.Message };
+            }
+        }
         public async Task<List<SoHieuMaxDto>> GetSoHieuMaxByTinhAndNamAsync(int idTinh, int nam)
         {
             if (idTinh <= 0)

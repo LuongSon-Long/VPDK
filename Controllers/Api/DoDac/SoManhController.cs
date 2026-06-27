@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using HeThongQuanLyVanPhong.DTOs.DoDac;
+using HeThongQuanLyVanPhong.Models;
 using HeThongQuanLyVanPhong.Services;
-using HeThongQuanLyVanPhong.DTOs.DoDac;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
 {
@@ -50,6 +51,33 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
         {
             var result = await _soManhService.GetSoHieuMaxByTinhAndNamAsync(idTinh, nam);
             return Ok(new { success = true, data = result });
+        }
+        [HttpPost("update-max")]
+        public async Task<IActionResult> UpdateSoHieuMax([FromBody] UpdateSoHieuMaxDto request)
+        {
+            var currentUserId = GetCurrentUserId();
+            var donViId = GetCurrentDonViId();
+
+            if (currentUserId == 0)
+                return Unauthorized(new { success = false, message = "Vui lòng đăng nhập" });
+
+            var result = await _soManhService.UpdateSoHieuMaxAsync(request, currentUserId, donViId);
+
+            if (result.success)
+                return Ok(result);
+
+            return BadRequest(result);
+        }
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteSoHieu(int id)
+        {
+            // Kiểm tra quyền Admin
+            var chucVu = HttpContext.Session.GetString("ChucVu");
+            if (chucVu != "Admin")
+                return Forbid();
+
+            var result = await _soManhService.DeleteSoHieuAsync(id);
+            return Ok(result);
         }
     }
 }

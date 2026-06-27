@@ -81,5 +81,30 @@ namespace HeThongQuanLyVanPhong.Services
                 SoHSLuu = luuTru.SoHsluu
             };
         }
+        public async Task<List<LuuTruResponseDto>> GetAllLuuTruAsync(string? search)
+        {
+            return await _luuTruRepo.GetAllLuuTruAsync(search);
+        }
+
+        public async Task<bool> DeleteLuuTruAsync(int id)
+        {
+            var record = await _luuTruRepo.GetByIdAsync(id);
+            if (record == null) return false;
+
+            _luuTruRepo.Remove(record);
+            await _luuTruRepo.SaveChangesAsync();
+            return true;
+        }
+        public async Task<List<string>> GetNganByKhoGiaAsync(string kho, string gia)
+        {
+            // Giả sử bạn thêm hàm này trong Repository
+            return await _luuTruRepo.GetNganByKhoGiaAsync(kho, gia);
+        }
+
+        public async Task<List<LuuTruResponseDto>> FindLuuTruAsync(string kho, string gia, string ngan)
+        {
+            return await _luuTruRepo.FindAsync(kho, gia, ngan);
+        }
+
     }
 }
