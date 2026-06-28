@@ -1,11 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using HeThongQuanLyVanPhong.Services;
+﻿using HeThongQuanLyVanPhong.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
 {
     [Route("api/dodac/[controller]")]
     [ApiController]
-    public class DropdownController : ControllerBase
+    public class DropdownController : ApiControllerBase
     {
         private readonly DropdownService _dropdownService;
 

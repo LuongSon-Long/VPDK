@@ -1,4 +1,5 @@
-﻿using HeThongQuanLyVanPhong.Models;
+﻿using HeThongQuanLyVanPhong.Filters;
+using HeThongQuanLyVanPhong.Models;
 using HeThongQuanLyVanPhong.Repositories;
 using HeThongQuanLyVanPhong.Services;
 using Microsoft.EntityFrameworkCore;
@@ -12,16 +13,16 @@ namespace HeThongQuanLyVanPhong
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // API Controllers
-            builder.Services.AddControllers()
+            // MVC + API Controllers (filter session tập trung)
+            builder.Services.AddControllersWithViews(options =>
+                {
+                    options.Filters.Add<RequireSessionFilter>();
+                })
                 .AddJsonOptions(options =>
                 {
                     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
                     options.JsonSerializerOptions.WriteIndented = true;
                 });
-
-            // MVC Controllers (cho Views)
-            builder.Services.AddControllersWithViews();
 
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
@@ -37,9 +38,7 @@ namespace HeThongQuanLyVanPhong
                           .AllowCredentials();
                 });
             });
-            Console.WriteLine(
-    builder.Configuration.GetConnectionString("DefaultConnection"));
-            // DbContext
+            // DbContext — connection string duy nhất từ appsettings.json
             builder.Services.AddDbContext<HeThongQuanLyVanPhongContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 

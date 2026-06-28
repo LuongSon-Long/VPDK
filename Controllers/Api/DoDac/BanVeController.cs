@@ -1,23 +1,18 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using HeThongQuanLyVanPhong.DTOs.DoDac;
 using HeThongQuanLyVanPhong.Services;
-using HeThongQuanLyVanPhong.DTOs.DoDac;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
 {
     [Route("api/dodac/[controller]")]
     [ApiController]
-    public class BanVeController : ControllerBase
+    public class BanVeController : ApiControllerBase
     {
         private readonly BanVeService _banVeService;
 
         public BanVeController(BanVeService banVeService)
         {
             _banVeService = banVeService;
-        }
-
-        private int GetCurrentUserId()
-        {
-            return HttpContext.Session.GetInt32("UserId") ?? 0;
         }
 
         [HttpGet("by-hoso/{idDangKyDoDac}")]
@@ -39,11 +34,7 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
         [HttpPost]
         public async Task<IActionResult> SaveBanVe([FromBody] SaveBanVeDto dto)
         {
-            var currentUserId = GetCurrentUserId();
-            if (currentUserId == 0)
-                return Unauthorized();
-
-            var result = await _banVeService.SaveBanVeAsync(dto, currentUserId);
+            var result = await _banVeService.SaveBanVeAsync(dto, CurrentUserId);
             if (!result.success)
                 return BadRequest(new { success = false, message = result.message });
 
@@ -53,11 +44,7 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBanVe(int id)
         {
-            var currentUserId = GetCurrentUserId();
-            if (currentUserId == 0)
-                return Unauthorized();
-
-            var result = await _banVeService.DeleteBanVeAsync(id, currentUserId);
+            var result = await _banVeService.DeleteBanVeAsync(id, CurrentUserId);
             if (!result.success)
                 return BadRequest(new { success = false, message = result.message });
 

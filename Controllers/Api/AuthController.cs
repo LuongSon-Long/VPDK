@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using HeThongQuanLyVanPhong.DTOs.Auth;
+using HeThongQuanLyVanPhong.Filters;
 using HeThongQuanLyVanPhong.Services;
-using HeThongQuanLyVanPhong.DTOs.Auth;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HeThongQuanLyVanPhong.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController : ControllerBase
+    public class AuthController : ApiControllerBase
     {
         private readonly AuthService _authService;
 
@@ -15,6 +16,7 @@ namespace HeThongQuanLyVanPhong.Controllers.Api
             _authService = authService;
         }
 
+        [AllowAnonymousSession]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
@@ -25,18 +27,17 @@ namespace HeThongQuanLyVanPhong.Controllers.Api
                 return BadRequest(result);
             }
 
-            // Lưu session
             if (result.User != null)
             {
-                HttpContext.Session.SetInt32("UserId", result.User.Id);
+                HttpContext.Session.SetInt32(SessionAuthExtensions.UserIdKey, result.User.Id);
                 HttpContext.Session.SetString("Username", result.User.TenTaiKhoan ?? "");
                 HttpContext.Session.SetString("FullName", result.User.HoVaTen ?? "");
                 HttpContext.Session.SetString("ChucVu", result.User.TenChucVu ?? "");
                 HttpContext.Session.SetString("DonViCongTac", result.User.TenDonViCongTac ?? "");
                 if (result.User.IdDonViCongTac.HasValue)
-                    HttpContext.Session.SetInt32("UserDonViId", result.User.IdDonViCongTac.Value);
+                    HttpContext.Session.SetInt32(SessionAuthExtensions.UserDonViIdKey, result.User.IdDonViCongTac.Value);
                 if (result.User.IdTinh.HasValue)
-                    HttpContext.Session.SetInt32("UserTinhId", result.User.IdTinh.Value);
+                    HttpContext.Session.SetInt32(SessionAuthExtensions.UserTinhIdKey, result.User.IdTinh.Value);
             }
 
             return Ok(result);
@@ -45,7 +46,7 @@ namespace HeThongQuanLyVanPhong.Controllers.Api
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
-            var userId = HttpContext.Session.GetInt32("UserId");
+            var userId = HttpContext.GetSessionUserId();
             await _authService.LogoutAsync(userId);
             HttpContext.Session.Clear();
             return Ok(new { success = true, message = "Đã đăng xuất" });
@@ -54,13 +55,8 @@ namespace HeThongQuanLyVanPhong.Controllers.Api
         [HttpGet("current-user")]
         public async Task<IActionResult> GetCurrentUser()
         {
-            var userId = HttpContext.Session.GetInt32("UserId");
-            if (!userId.HasValue)
-            {
-                return Unauthorized(new { message = "Chưa đăng nhập" });
-            }
-
-            var user = await _authService.GetCurrentUserAsync(userId.Value);
+            var userId = HttpContext.GetSessionUserId()!.Value;
+            var user = await _authService.GetCurrentUserAsync(userId);
             if (user == null)
             {
                 HttpContext.Session.Clear();
@@ -73,26 +69,22 @@ namespace HeThongQuanLyVanPhong.Controllers.Api
         [HttpGet("has-permission")]
         public async Task<IActionResult> HasPermission(int moduleId)
         {
-            var userId = HttpContext.Session.GetInt32("UserId");
-            if (!userId.HasValue)
-            {
-                return Ok(false);
-            }
-
-            var hasPermission = await _authService.HasPermissionAsync(userId.Value, moduleId);
+            var userId = HttpContext.GetSessionUserId()!.Value;
+            var hasPermission = await _authService.HasPermissionAsync(userId, moduleId);
             return Ok(hasPermission);
         }
 
+        [AllowAnonymousSession]
         [HttpGet("guest-login")]
         public IActionResult GuestLogin()
         {
             HttpContext.Session.Clear();
-            HttpContext.Session.SetInt32("UserId", -1);
+            HttpContext.Session.SetInt32(SessionAuthExtensions.UserIdKey, -1);
             HttpContext.Session.SetString("FullName", "Khách đăng ký");
             HttpContext.Session.SetString("Username", "Khach");
             HttpContext.Session.SetString("ChucVu", "Khách");
             HttpContext.Session.SetString("DonViCongTac", "Hộ gia đình, cá nhân, tổ chức đăng ký");
-            HttpContext.Session.SetInt32("UserTinhId", 0);
+            HttpContext.Session.SetInt32(SessionAuthExtensions.UserTinhIdKey, 0);
             return LocalRedirect("/");
         }
 
@@ -101,11 +93,12 @@ namespace HeThongQuanLyVanPhong.Controllers.Api
         {
             if (request.IdTinh > 0)
             {
-                HttpContext.Session.SetInt32("UserTinhId", request.IdTinh);
+                HttpContext.Session.SetInt32(SessionAuthExtensions.UserTinhIdKey, request.IdTinh);
             }
             return Ok(new { success = true });
         }
     }
+
     public class UpdateTinhDto
     {
         public int IdTinh { get; set; }

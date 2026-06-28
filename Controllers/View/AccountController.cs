@@ -1,5 +1,6 @@
 ﻿using Azure;
 using HeThongQuanLyVanPhong.DTOs.Auth;
+using HeThongQuanLyVanPhong.Filters;
 using HeThongQuanLyVanPhong.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,6 +17,7 @@ namespace HeThongQuanLyVanPhong.Controllers.View
             _taiKhoanService = taiKhoanService; 
         }
 
+        [AllowAnonymousSession]
         [HttpGet]
         public IActionResult Login()
         {
@@ -24,6 +26,7 @@ namespace HeThongQuanLyVanPhong.Controllers.View
             return View();
         }
 
+        [AllowAnonymousSession]
         [HttpPost]
         public async Task<IActionResult> Login(string tenTaiKhoan, string matKhau)
         {

@@ -1,12 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using HeThongQuanLyVanPhong.DTOs.DoDac;
 using HeThongQuanLyVanPhong.Services;
-using HeThongQuanLyVanPhong.DTOs.DoDac;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
 {
     [Route("api/dodac/[controller]")]
     [ApiController]
-    public class BaoCaoController : ControllerBase
+    public class BaoCaoController : ApiControllerBase
     {
         private readonly BaoCaoService _baoCaoService;
 
@@ -21,7 +21,7 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
             if (string.IsNullOrEmpty(request.TuNgay) || string.IsNullOrEmpty(request.DenNgay))
                 return BadRequest("Vui lòng cung cấp khoảng thời gian");
             var data = await _baoCaoService.GetThongKeAsync(request);
-            return Ok(data);        
+            return Ok(data);
         }
 
         [HttpPost("chitiet")]

@@ -1,23 +1,18 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using HeThongQuanLyVanPhong.DTOs.DoDac;
 using HeThongQuanLyVanPhong.Services;
-using HeThongQuanLyVanPhong.DTOs.DoDac;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
 {
     [Route("api/dodac/[controller]")]
     [ApiController]
-    public class DonGiaThanhToanController : ControllerBase
+    public class DonGiaThanhToanController : ApiControllerBase
     {
         private readonly DonGiaThanhToanService _service;
 
         public DonGiaThanhToanController(DonGiaThanhToanService service)
         {
             _service = service;
-        }
-
-        private int GetCurrentUserId()
-        {
-            return HttpContext.Session.GetInt32("UserId") ?? 0;
         }
 
         [HttpGet("vanban")]
@@ -51,12 +46,7 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
         [HttpPost("thanhtoan")]
         public async Task<IActionResult> SaveThanhToanBanVe([FromBody] ThanhToanBanVeDto request)
         {
-            var currentUserId = GetCurrentUserId();
-
-            if (currentUserId == 0)
-                return Unauthorized();
-
-            var result = await _service.SaveThanhToanBanVeAsync(request, currentUserId);
+            var result = await _service.SaveThanhToanBanVeAsync(request, CurrentUserId);
             return Ok(new { success = result });
         }
 

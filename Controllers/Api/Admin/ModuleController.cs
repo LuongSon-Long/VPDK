@@ -1,12 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using HeThongQuanLyVanPhong.Controllers.Api;
+using HeThongQuanLyVanPhong.Filters;
 using HeThongQuanLyVanPhong.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace HeThongQuanLyVanPhong.Controllers.Api.Admin
 {
+    [RequireSession(AllowGuest = false)]
     [Route("api/admin/[controller]")]
     [ApiController]
-    public class ModuleController : ControllerBase
+    public class ModuleController : ApiControllerBase
     {
         private readonly HeThongQuanLyVanPhongContext _context;
 

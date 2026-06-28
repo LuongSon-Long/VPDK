@@ -1,12 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using HeThongQuanLyVanPhong.DTOs.DoDac;
 using HeThongQuanLyVanPhong.Services;
-using HeThongQuanLyVanPhong.DTOs.DoDac;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
 {
     [Route("api/dodac/[controller]")]
     [ApiController]
-    public class XuatFileController : ControllerBase
+    public class XuatFileController : ApiControllerBase
     {
         private readonly XuatFileService _xuatFileService;
 
@@ -52,13 +52,12 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
                         $"DanhSach_BanVe_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
         }
 
-        [HttpPost("excel-hoso-ids")] // Thêm đúng endpoint này để khớp với JS
+        [HttpPost("excel-hoso-ids")]
         public async Task<IActionResult> XuatExcelHoSoIds([FromBody] XuatExcelTheoIdRequestDto request)
         {
             if (request.Ids == null || !request.Ids.Any())
                 return BadRequest("Danh sách hồ sơ rỗng.");
 
-            // Gọi đúng service xử lý hồ sơ (đảm bảo service đã có hàm này)
             var bytes = await _xuatFileService.XuatExcelHoSoTheoIdsAsync(request.Ids);
 
             return File(bytes,

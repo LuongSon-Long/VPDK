@@ -1,23 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using HeThongQuanLyVanPhong.Services;
-using HeThongQuanLyVanPhong.DTOs.DoDac;
+﻿using HeThongQuanLyVanPhong.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
 {
     [Route("api/dodac/[controller]")]
     [ApiController]
-    public class FileQuetController : ControllerBase
+    public class FileQuetController : ApiControllerBase
     {
         private readonly FileQuetService _fileQuetService;
 
         public FileQuetController(FileQuetService fileQuetService)
         {
             _fileQuetService = fileQuetService;
-        }
-
-        private int GetCurrentUserId()
-        {
-            return HttpContext.Session.GetInt32("UserId") ?? 0;
         }
 
         [HttpGet("by-hoso/{idHoSo}")]
@@ -30,11 +24,7 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
         [HttpPost("upload")]
         public async Task<IActionResult> UploadFile([FromForm] int idHoSo, [FromForm] string? noiDung, IFormFile file)
         {
-            var currentUserId = GetCurrentUserId();
-            if (currentUserId == 0)
-                return Unauthorized();
-
-            var result = await _fileQuetService.UploadFileAsync(idHoSo, noiDung ?? "", file, currentUserId);
+            var result = await _fileQuetService.UploadFileAsync(idHoSo, noiDung ?? "", file, CurrentUserId);
             if (!result.success)
                 return BadRequest(new { success = false, message = result.message });
 
@@ -44,11 +34,7 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.DoDac
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteFile(int id)
         {
-            var currentUserId = GetCurrentUserId();
-            if (currentUserId == 0)
-                return Unauthorized();
-
-            var result = await _fileQuetService.DeleteFileAsync(id, currentUserId);
+            var result = await _fileQuetService.DeleteFileAsync(id, CurrentUserId);
             if (!result.success)
                 return BadRequest(new { success = false, message = result.message });
 

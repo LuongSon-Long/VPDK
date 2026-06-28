@@ -1,25 +1,22 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using HeThongQuanLyVanPhong.Controllers.Api;
+using HeThongQuanLyVanPhong.DTOs.TaiKhoan;
+using HeThongQuanLyVanPhong.Filters;
 using HeThongQuanLyVanPhong.Models;
 using HeThongQuanLyVanPhong.Services;
-using HeThongQuanLyVanPhong.DTOs.TaiKhoan;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HeThongQuanLyVanPhong.Controllers.Api.Admin
 {
+    [RequireSession(AllowGuest = false)]
     [Route("api/admin/[controller]")]
     [ApiController]
-    public class TaiKhoanController : ControllerBase
+    public class TaiKhoanController : ApiControllerBase
     {
         private readonly TaiKhoanService _taiKhoanService;
 
         public TaiKhoanController(TaiKhoanService taiKhoanService)
         {
             _taiKhoanService = taiKhoanService;
-        }
-
-        private int GetCurrentUserId()
-        {
-            return HttpContext.Session.GetInt32("UserId") ?? 0;
         }
 
         [HttpGet]
@@ -42,10 +39,6 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.Admin
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateTaiKhoanRequestDto request)
         {
-            var currentUserId = GetCurrentUserId();
-            if (currentUserId == 0)
-                return Unauthorized(new { message = "Chưa đăng nhập" });
-
             var user = new TaiKhoan
             {
                 TenTaiKhoan = request.TenTaiKhoan,
@@ -56,17 +49,13 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.Admin
                 Idtinh = request.IdTinh
             };
 
-            var result = await _taiKhoanService.CreateAsync(user, request.SelectedModules ?? new List<int>(), currentUserId);
+            var result = await _taiKhoanService.CreateAsync(user, request.SelectedModules ?? new List<int>(), CurrentUserId);
             return Ok(new { success = result });
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateTaiKhoanRequestDto request)
         {
-            var currentUserId = GetCurrentUserId();
-            if (currentUserId == 0)
-                return Unauthorized(new { message = "Chưa đăng nhập" });
-
             var user = new TaiKhoan
             {
                 Id = id,
@@ -76,39 +65,28 @@ namespace HeThongQuanLyVanPhong.Controllers.Api.Admin
                 Idtinh = request.IdTinh
             };
 
-            var result = await _taiKhoanService.UpdateAsync(user, request.SelectedModules ?? new List<int>(), currentUserId);
+            var result = await _taiKhoanService.UpdateAsync(user, request.SelectedModules ?? new List<int>(), CurrentUserId);
             return Ok(new { success = result });
         }
 
         [HttpPost("{id}/reset-password")]
         public async Task<IActionResult> ResetPassword(int id)
         {
-            var currentUserId = GetCurrentUserId();
-            if (currentUserId == 0)
-                return Unauthorized(new { message = "Chưa đăng nhập" });
-
-            var result = await _taiKhoanService.ResetPasswordAsync(id, currentUserId);
+            var result = await _taiKhoanService.ResetPasswordAsync(id, CurrentUserId);
             return Ok(new { success = result });
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var currentUserId = GetCurrentUserId();
-            if (currentUserId == 0)
-                return Unauthorized(new { message = "Chưa đăng nhập" });
-
-            var result = await _taiKhoanService.DeleteAsync(id, currentUserId);
+            var result = await _taiKhoanService.DeleteAsync(id, CurrentUserId);
             return Ok(new { success = result });
         }
 
         [HttpGet("my-modules")]
         public async Task<IActionResult> GetMyModules()
         {
-            var userId = GetCurrentUserId();
-            if (userId == 0) return Unauthorized();
-
-            var modules = await _taiKhoanService.GetMyModulesAsync(userId);
+            var modules = await _taiKhoanService.GetMyModulesAsync(CurrentUserId);
             return Ok(modules);
         }
     }
