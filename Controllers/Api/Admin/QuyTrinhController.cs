@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HeThongQuanLyVanPhong.Controllers.Api.Admin
 {
-    [RequireSession(AllowGuest = false)]
+    [RequireSession(AllowGuest = true)]
     [Route("api/admin/[controller]")]
     [ApiController]
     public class QuyTrinhController : ApiControllerBase

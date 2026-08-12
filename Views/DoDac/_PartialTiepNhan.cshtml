@@ -168,9 +168,11 @@
     async function tn_LoadQuyTrinh() {
         try {
             const data = await apiGet('/api/admin/QuyTrinh');
+            console.log("Danh sách quy trình từ API:", data);
+
             let opts = '<option value="">-- Chọn quy trình --</option>';
 
-            const targetLoai = (typeof SESSION_USER_ID !== 'undefined' && SESSION_USER_ID === -1)
+            const targetLoai = (typeof SESSION_USER_ID !== 'undefined' && SESSION_USER_ID === -1 || SESSION_USER_ID === "-1")
                 ? 'DoDacOnline'
                 : 'DoDac';
 
